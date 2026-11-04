@@ -1,0 +1,62 @@
+<div class="rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3"
+     style="background:var(--color-bg-sidebar);border:1px solid color-mix(in srgb,var(--color-primary) 10%,transparent)">
+
+  <i class="fa-solid fa-calendar-days text-xs opacity-40" style="color:var(--color-text)"></i>
+  <span class="text-xs font-semibold opacity-50 mr-1" style="color:var(--color-text)">Período</span>
+
+  <!-- Preset pills -->
+  @for (p of presets; track p.key) {
+    <button
+      (click)="aplicarPreset(p.key)"
+      class="px-3 py-1 rounded-full text-xs font-medium transition-all duration-150"
+      [style.background]="presetActivo === p.key
+        ? 'var(--color-primary)'
+        : 'color-mix(in srgb,var(--color-primary) 8%,transparent)'"
+      [style.color]="presetActivo === p.key ? '#fff' : 'var(--color-text)'"
+      [style.opacity]="cargando ? '0.6' : '1'"
+      [disabled]="cargando">
+      {{ p.label }}
+    </button>
+  }
+
+  <!-- Separator -->
+  <span class="opacity-20 text-xs" style="color:var(--color-text)">|</span>
+
+  <!-- Custom date range -->
+  <div class="flex items-center gap-2">
+    <input
+      type="date"
+      [(ngModel)]="desde"
+      (ngModelChange)="presetActivo = ''"
+      class="text-xs rounded-lg px-2 py-1 border outline-none"
+      style="background:var(--color-bg);color:var(--color-text);border-color:color-mix(in srgb,var(--color-primary) 20%,transparent)"
+      [disabled]="cargando" />
+    <span class="text-xs opacity-40" style="color:var(--color-text)">→</span>
+    <input
+      type="date"
+      [(ngModel)]="hasta"
+      (ngModelChange)="presetActivo = ''"
+      class="text-xs rounded-lg px-2 py-1 border outline-none"
+      style="background:var(--color-bg);color:var(--color-text);border-color:color-mix(in srgb,var(--color-primary) 20%,transparent)"
+      [disabled]="cargando" />
+    <button
+      (click)="aplicarCustom()"
+      class="px-3 py-1 rounded-lg text-xs font-medium transition-all duration-150"
+      style="background:color-mix(in srgb,var(--color-primary) 15%,transparent);color:var(--color-primary)"
+      [disabled]="!desde || !hasta || cargando">
+      Aplicar
+    </button>
+  </div>
+
+  <!-- Right side: spinner or active label -->
+  <div class="ml-auto flex items-center gap-2">
+    @if (cargando) {
+      <i class="fa-solid fa-circle-notch fa-spin text-xs" style="color:var(--color-primary)"></i>
+    } @else if (desde) {
+      <span class="text-xs opacity-60 font-mono" style="color:var(--color-text)">
+        {{ desde }} — {{ hasta || '…' }}
+      </span>
+    }
+  </div>
+
+</div>

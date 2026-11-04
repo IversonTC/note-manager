@@ -1,0 +1,451 @@
+<div class="w-full rounded-2xl overflow-hidden shadow-sm"
+     style="background:var(--color-bg-sidebar);border:1px solid color-mix(in srgb,var(--color-primary) 10%,transparent)">
+
+  <!-- ── Encabezado + Filtros ───────────────────────────── -->
+  <div class="px-5 pt-5 pb-4 border-b"
+       style="border-color:color-mix(in srgb,var(--color-primary) 8%,transparent)">
+
+    @if (titulo) {
+      <div class="mb-4">
+        <h2 class="text-lg font-bold" style="color:var(--color-text)">{{ titulo }}</h2>
+        @if (subtitulo) {
+          <p class="text-xs text-gray-400 mt-0.5">{{ subtitulo }}</p>
+        }
+      </div>
+    }
+
+    <div class="flex flex-wrap gap-3 items-end">
+
+      <!-- Buscador -->
+      <div class="flex flex-col gap-1 flex-1 min-w-[200px]">
+        <label class="text-[11px] font-semibold uppercase tracking-wider opacity-50">Buscar</label>
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+          <input type="text"
+                 [(ngModel)]="search"
+                 (ngModelChange)="onBuscarChange()"
+                 placeholder="Buscar..."
+                 class="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none transition-all"
+                 style="background:var(--color-bg);border:1px solid color-mix(in srgb,var(--color-text) 12%,transparent);color:var(--color-text)" />
+        </div>
+      </div>
+
+      <!-- Selects dinámicos -->
+      @for (f of filtrosSelect; track f.key) {
+        <div class="flex flex-col gap-1 min-w-[150px]">
+          <label class="text-[11px] font-semibold uppercase tracking-wider opacity-50">{{ f.label }}</label>
+          <select [(ngModel)]="f.valor"
+                  (change)="onFiltroSelectChange()"
+                  class="px-3 py-2 rounded-lg text-sm outline-none transition-all"
+                  style="background:var(--color-bg);border:1px solid color-mix(in srgb,var(--color-text) 12%,transparent);color:var(--color-text)">
+            <option value="">Todos</option>
+            @for (o of f.opciones; track o.valor) {
+              <option [value]="o.valor">{{ o.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      <!-- Multi-selects dinámicos -->
+      @for (f of filtrosMulti; track f.key) {
+        <div class="flex flex-col gap-1 min-w-[160px] relative">
+          <label class="text-[11px] font-semibold uppercase tracking-wider opacity-50">{{ f.label }}</label>
+
+          <!-- Botón disparador -->
+          <button type="button"
+            (click)="toggleMultiDropdown(f.key)"
+            class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm text-left transition-all"
+            style="background:var(--color-bg);border:1px solid color-mix(in srgb,var(--color-text) 12%,transparent);color:var(--color-text)">
+            <span class="truncate max-w-[130px]"
+              [style.color]="f.valores.length ? 'var(--color-primary)' : 'inherit'"
+              [style.font-weight]="f.valores.length ? '600' : 'normal'">
+              {{ labelMulti(f) }}
+            </span>
+            <i class="fa-solid text-[10px] flex-shrink-0 transition-transform"
+              [class]="multiAbierto === f.key ? 'fa-chevron-up' : 'fa-chevron-down'"
+              style="opacity:.5"></i>
+          </button>
+
+          <!-- Dropdown con checkboxes -->
+          @if (multiAbierto === f.key) {
+            <div class="absolute top-full left-0 mt-1 z-50 rounded-xl shadow-xl min-w-[200px] overflow-hidden"
+              style="background:var(--color-bg-sidebar);border:1px solid color-mix(in srgb,var(--color-primary) 15%,transparent)"
+              (click)="$event.stopPropagation()">
+
+              <!-- Limpiar -->
+              @if (f.valores.length > 0) {
+                <div class="px-3 py-2 border-b"
+                  style="border-color:color-mix(in srgb,var(--color-text) 8%,transparent)">
+                  <button (click)="limpiarMulti(f)"
+                    class="text-xs font-semibold transition hover:opacity-70"
+                    style="color:var(--color-primary)">
+                    <i class="fa-solid fa-xmark mr-1"></i>Limpiar selección
+                  </button>
+                </div>
+              }
+
+              <!-- Opciones -->
+              <div class="py-1 max-h-52 overflow-y-auto">
+                @for (o of f.opciones; track o.valor) {
+                  <label class="flex items-center gap-2.5 px-3 py-2 cursor-pointer transition hover:opacity-80 select-none"
+                    [style.background]="f.valores.includes(o.valor)
+                      ? 'color-mix(in srgb,var(--color-primary) 8%,transparent)'
+                      : 'transparent'">
+                    <input type="checkbox"
+                      [checked]="f.valores.includes(o.valor)"
+                      (change)="toggleMultiOpcion(f, o.valor)"
+                      class="rounded accent-[var(--color-primary)] w-3.5 h-3.5 flex-shrink-0" />
+                    @if (o.color) {
+                      <span class="w-2 h-2 rounded-full flex-shrink-0"
+                        [style.background]="o.color"></span>
+                    }
+                    <span class="text-sm" style="color:var(--color-text)">{{ o.label }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+            <!-- Overlay para cerrar al hacer clic fuera -->
+            <div class="fixed inset-0 z-40" (click)="cerrarMultiDropdown()"></div>
+          }
+        </div>
+      }
+
+      <!-- Paginador compacto (arriba) -->
+      @if (totalPaginas > 1) {
+        <div class="flex items-center gap-1 ml-auto flex-shrink-0 self-end">
+          <span class="text-xs opacity-50 mr-1 whitespace-nowrap">Pág {{ paginaActual }} / {{ totalPaginas }}</span>
+          <button (click)="irAPagina(1)" [disabled]="paginaActual === 1"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition disabled:opacity-30"
+                  style="border:1px solid color-mix(in srgb,var(--color-primary) 20%,transparent);color:var(--color-primary)">
+            <i class="fa-solid fa-angles-left text-[10px]"></i>
+          </button>
+          <button (click)="irAPagina(paginaActual - 1)" [disabled]="paginaActual === 1"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition disabled:opacity-30"
+                  style="border:1px solid color-mix(in srgb,var(--color-primary) 20%,transparent);color:var(--color-primary)">
+            <i class="fa-solid fa-angle-left text-[10px]"></i>
+          </button>
+          <button (click)="irAPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition disabled:opacity-30"
+                  style="border:1px solid color-mix(in srgb,var(--color-primary) 20%,transparent);color:var(--color-primary)">
+            <i class="fa-solid fa-angle-right text-[10px]"></i>
+          </button>
+          <button (click)="irAPagina(totalPaginas)" [disabled]="paginaActual === totalPaginas"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition disabled:opacity-30"
+                  style="border:1px solid color-mix(in srgb,var(--color-primary) 20%,transparent);color:var(--color-primary)">
+            <i class="fa-solid fa-angles-right text-[10px]"></i>
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       MOBILE — Cards (oculto en md+)
+  ════════════════════════════════════════════ -->
+  <div class="md:hidden">
+
+    <!-- Skeleton mobile -->
+    @if (cargando) {
+      <div class="divide-y" style="border-color:color-mix(in srgb,var(--color-text) 5%,transparent)">
+        @for (r of skeletonRows.slice(0, 5); track r) {
+          <div class="p-4 animate-pulse flex flex-col gap-2">
+            <div class="h-3.5 rounded-full w-2/3" style="background:color-mix(in srgb,var(--color-text) 10%,transparent)"></div>
+            <div class="h-2.5 rounded-full w-1/2" style="background:color-mix(in srgb,var(--color-text) 6%,transparent)"></div>
+            <div class="h-2.5 rounded-full w-3/4" style="background:color-mix(in srgb,var(--color-text) 6%,transparent)"></div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Sin resultados mobile -->
+    @else if (items.length === 0) {
+      <div class="py-16 flex flex-col items-center gap-2 opacity-40">
+        <i class="fa-solid fa-inbox text-3xl"></i>
+        <p class="text-sm font-medium">{{ msgVacio }}</p>
+      </div>
+    }
+
+    <!-- Cards -->
+    @else {
+      <div class="divide-y" style="border-color:color-mix(in srgb,var(--color-text) 5%,transparent)">
+        @for (item of items; track trackByIndex($index)) {
+          <div class="p-4" style="color:var(--color-text)">
+
+            <!-- Título: primera columna -->
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <p class="font-semibold text-sm leading-tight">
+                {{ formatear(item[columnas[0]?.key!], columnas[0]?.tipo) }}
+              </p>
+              <!-- Acciones en la esquina -->
+              @if (tieneAcciones) {
+                <div class="flex gap-1.5 flex-shrink-0">
+                  @for (ac of acciones; track ac.key) {
+                    @if (accionVisible(ac, item)) {
+                      <button (click)="emitirAccion(ac.key, item)"
+                              [title]="ac.label"
+                              class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95"
+                              [style]="accionColorStyle(ac.color)">
+                        <i [class]="ac.icon"></i>
+                        {{ ac.label }}
+                      </button>
+                    }
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Resto de columnas como key-value -->
+            <div class="flex flex-col gap-1">
+              @for (col of columnas.slice(1); track col.key) {
+                <div class="flex items-center justify-between gap-2 text-xs">
+                  <span class="opacity-40 font-medium">{{ col.label }}</span>
+                  @if (col.tipo === 'badge') {
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                          [ngClass]="badgeClasses(col, item[col.key])"
+                          [style.background]="badgeBg(col, item[col.key])"
+                          [style.color]="badgeFg(col, item[col.key])"
+                          [title]="badgeTitle(col, item[col.key])">
+                      @if (badgeIcon(col, item[col.key])) {
+                        <i [class]="badgeIcon(col, item[col.key])"></i>
+                      }
+                      @if (!badgeSoloIcono(col, item[col.key])) {
+                        {{ badgeLabel(col, item[col.key]) }}
+                      }
+                    </span>
+                  } @else if (col.tipo === 'roles-array') {
+                    <div class="flex flex-wrap gap-1 justify-end">
+                      @for (rol of (item[col.key] ?? []); track rol.codigo) {
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium border"
+                              style="background:color-mix(in srgb,var(--color-primary) 10%,transparent);color:var(--color-primary);border-color:color-mix(in srgb,var(--color-primary) 25%,transparent)">
+                          <span class="font-semibold">{{ rol.tipo }}</span>
+                        </span>
+                      }
+                    </div>
+                  } @else {
+                    <span class="font-medium truncate max-w-[55%] text-right">
+                      {{ formatear(item[col.key], col.tipo) }}
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       DESKTOP — Tabla (oculto en mobile)
+  ════════════════════════════════════════════ -->
+  <div class="hidden md:block overflow-x-auto">
+    <table class="w-full text-sm border-collapse">
+
+      <!-- Header — estilo según variante -->
+      <thead>
+        <tr [style]="thStyle"
+            [style.border-bottom]="'2px solid color-mix(in srgb,var(--color-primary) ' + (variante === 'minima' ? '15%' : '30%') + ',transparent)'">
+          @for (col of columnas; track col.key; let first = $first) {
+            <th [class]="thClass"
+                [class.pl-5]="first"
+                [class.text-center]="col.align === 'center'"
+                [class.text-right]="col.align === 'right'">
+              @if (variante === 'moderna' && first) {
+                <span class="inline-flex items-center gap-2">
+                  <span class="w-0.5 h-3.5 rounded-full inline-block" style="background:var(--color-primary);opacity:0.6"></span>
+                  {{ col.label }}
+                </span>
+              } @else {
+                {{ col.label }}
+              }
+            </th>
+          }
+          @if (tieneAcciones) {
+            <th [class]="thClass" class="text-center">Acciones</th>
+          }
+        </tr>
+      </thead>
+
+      <!-- Skeleton desktop -->
+      @if (cargando) {
+        <tbody>
+          @for (r of skeletonRows; track r) {
+            <tr style="border-bottom:1px solid color-mix(in srgb,var(--color-text) 5%,transparent)">
+              @for (col of columnas; track col.key; let first = $first) {
+                <td class="px-4 py-3" [class.pl-5]="first">
+                  <div class="h-3 rounded-full animate-pulse" [style.width]="first ? '60%' : '40%'"
+                       style="background:color-mix(in srgb,var(--color-text) 8%,transparent)"></div>
+                  @if (first) {
+                    <div class="h-2 rounded-full animate-pulse mt-1.5 w-1/3"
+                         style="background:color-mix(in srgb,var(--color-text) 5%,transparent)"></div>
+                  }
+                </td>
+              }
+              @if (tieneAcciones) {
+                <td class="px-4 py-3">
+                  <div class="h-6 w-16 rounded animate-pulse mx-auto"
+                       style="background:color-mix(in srgb,var(--color-text) 8%,transparent)"></div>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      }
+
+      <!-- Sin resultados desktop -->
+      @else if (items.length === 0) {
+        <tbody>
+          <tr>
+            <td [attr.colspan]="columnas.length + (tieneAcciones ? 1 : 0)" class="py-16 text-center">
+              <div class="flex flex-col items-center gap-2 opacity-40">
+                <i class="fa-solid fa-inbox text-3xl"></i>
+                <p class="text-sm font-medium">{{ msgVacio }}</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      }
+
+      <!-- Datos desktop -->
+      @else {
+        <tbody>
+          @for (item of items; track trackByIndex($index); let odd = $odd) {
+            <tr class="transition-all duration-150"
+                (mouseenter)="hoverRow = item"
+                (mouseleave)="hoverRow = null"
+                [style]="rowStyle(odd, hoverRow === item)"
+                [style.border-bottom]="'1px solid color-mix(in srgb,var(--color-text) ' + (variante === 'moderna' ? '4%' : '5%') + ',transparent)'">
+
+              @for (col of columnas; track col.key; let first = $first) {
+                <td [class]="variante === 'moderna'
+                      ? (col.tipo === 'roles-array' ? 'px-4 py-3.5' : 'px-4 py-3.5 max-w-[220px]')
+                      : (col.tipo === 'roles-array' ? 'px-4 py-3'   : 'px-4 py-3 max-w-[220px]')"
+                    [class.pl-5]="first"
+                    [class.text-center]="col.align === 'center'"
+                    [class.text-right]="col.align === 'right'"
+                    style="color:var(--color-text)"
+                    [style.min-width]="col.tipo === 'roles-array' ? '200px' : null">
+
+                  <!-- Acento izquierdo en primera celda para moderna -->
+                  @if (variante === 'moderna' && first) {
+                    <div class="flex items-center gap-2.5">
+                      <span class="w-0.5 h-4 rounded-full flex-shrink-0 transition-all duration-150"
+                            [style]="hoverRow === item ? 'background:var(--color-primary)' : 'background:color-mix(in srgb,var(--color-primary) 25%,transparent)'"></span>
+                      <span [class]="col.truncate ? 'block truncate font-medium' : 'font-medium'" [title]="col.truncate ? item[col.key] : ''">
+                        {{ formatear(item[col.key], col.tipo) }}
+                      </span>
+                    </div>
+                  } @else if (col.tipo === 'badge') {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                          [ngClass]="badgeClasses(col, item[col.key])"
+                          [style.background]="badgeBg(col, item[col.key])"
+                          [style.color]="badgeFg(col, item[col.key])"
+                          [title]="badgeTitle(col, item[col.key])">
+                      @if (badgeIcon(col, item[col.key])) {
+                        <i [class]="badgeIcon(col, item[col.key])"></i>
+                      }
+                      @if (!badgeSoloIcono(col, item[col.key])) {
+                        {{ badgeLabel(col, item[col.key]) }}
+                      }
+                    </span>
+                  } @else if (col.tipo === 'roles-array') {
+                    <div class="flex flex-wrap gap-1">
+                      @for (rol of (item[col.key] ?? []); track rol.codigo) {
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border"
+                              style="background:color-mix(in srgb,var(--color-primary) 10%,transparent);color:var(--color-primary);border-color:color-mix(in srgb,var(--color-primary) 25%,transparent)"
+                              [title]="rol.tipo + ': ' + rol.nombre">
+                          <span class="font-semibold">{{ rol.tipo }}:</span>
+                          <span class="opacity-80 max-w-[100px] truncate">{{ rol.nombre }}</span>
+                        </span>
+                      }
+                    </div>
+                  } @else if (col.truncate) {
+                    <span class="block truncate" [title]="item[col.key]">{{ formatear(item[col.key], col.tipo) }}</span>
+                  } @else {
+                    {{ formatear(item[col.key], col.tipo) }}
+                  }
+                </td>
+              }
+
+              @if (tieneAcciones) {
+                <td [class]="variante === 'moderna' ? 'px-4 py-3.5 text-center' : 'px-4 py-3 text-center'">
+                  <div class="flex items-center justify-center gap-1.5">
+                    @for (ac of acciones; track ac.key) {
+                      @if (accionVisible(ac, item)) {
+                        @if (variante === 'moderna') {
+                          <!-- Moderna: ícono circular con tooltip -->
+                          <button (click)="emitirAccion(ac.key, item)"
+                                  [title]="ac.label"
+                                  class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 hover:scale-110"
+                                  [style]="accionColorStyle(ac.color)">
+                            <i [class]="ac.icon + ' text-xs'"></i>
+                          </button>
+                        } @else {
+                          <!-- Clásica / mínima: botón con label -->
+                          <button (click)="emitirAccion(ac.key, item)"
+                                  [title]="ac.label"
+                                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95"
+                                  [style]="accionColorStyle(ac.color)">
+                            <i [class]="ac.icon"></i>
+                            <span>{{ ac.label }}</span>
+                          </button>
+                        }
+                      }
+                    }
+                  </div>
+                </td>
+              }
+
+            </tr>
+          }
+        </tbody>
+      }
+
+    </table>
+  </div>
+
+  <!-- ── Pie: total + paginador ─────────────────────────── -->
+  @if (totalItems > 0) {
+    <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t text-xs"
+         style="border-color:color-mix(in srgb,var(--color-text) 6%,transparent);color:var(--color-text)">
+
+      <span class="opacity-50">Mostrando {{ desde }}–{{ hasta }} de {{ totalItems }} registros</span>
+
+      @if (totalPaginas > 1) {
+        <div class="flex items-center gap-1">
+          <button (click)="irAPagina(1)" [disabled]="paginaActual === 1"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition disabled:opacity-30"
+                  style="border:1px solid color-mix(in srgb,var(--color-primary) 20%,transparent);color:var(--color-primary)">
+            <i class="fa-solid fa-angles-left text-[10px]"></i>
+          </button>
+          <button (click)="irAPagina(paginaActual - 1)" [disabled]="paginaActual === 1"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition disabled:opacity-30"
+                  style="border:1px solid color-mix(in srgb,var(--color-primary) 20%,transparent);color:var(--color-primary)">
+            <i class="fa-solid fa-angle-left text-[10px]"></i>
+          </button>
+          @for (p of paginasVisibles; track p) {
+            <button (click)="irAPagina(p)"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium transition"
+                    [style]="p === paginaActual
+                      ? 'background:var(--color-primary);color:white;border:1px solid var(--color-primary)'
+                      : 'border:1px solid color-mix(in srgb,var(--color-text) 12%,transparent);color:var(--color-text)'">
+              {{ p }}
+            </button>
+          }
+          <button (click)="irAPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition disabled:opacity-30"
+                  style="border:1px solid color-mix(in srgb,var(--color-primary) 20%,transparent);color:var(--color-primary)">
+            <i class="fa-solid fa-angle-right text-[10px]"></i>
+          </button>
+          <button (click)="irAPagina(totalPaginas)" [disabled]="paginaActual === totalPaginas"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition disabled:opacity-30"
+                  style="border:1px solid color-mix(in srgb,var(--color-primary) 20%,transparent);color:var(--color-primary)">
+            <i class="fa-solid fa-angles-right text-[10px]"></i>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+</div>

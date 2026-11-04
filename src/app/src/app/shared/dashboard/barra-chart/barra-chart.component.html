@@ -1,0 +1,58 @@
+<div class="rounded-2xl p-4 flex flex-col gap-2 h-full relative"
+     style="background:var(--color-bg-sidebar);border:1px solid color-mix(in srgb,var(--color-primary) 10%,transparent)"
+     (mousemove)="onMove($event)" (mouseleave)="onLeave()">
+
+  <!-- Header -->
+  <div class="flex items-center gap-2 flex-shrink-0">
+    <i [class]="icono + ' text-sm'" style="color:var(--color-primary)"></i>
+    <span class="text-sm font-semibold" style="color:var(--color-text)">{{ titulo }}</span>
+  </div>
+
+  @if (cargando) {
+    <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
+      @for (s of skeletons; track s) {
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between">
+            <div class="h-3 w-24 rounded animate-pulse"
+                 style="background:color-mix(in srgb,var(--color-primary) 10%,transparent)"></div>
+            <div class="h-3 w-10 rounded animate-pulse"
+                 style="background:color-mix(in srgb,var(--color-primary) 8%,transparent)"></div>
+          </div>
+          <div class="h-2 w-full rounded-full animate-pulse"
+               style="background:color-mix(in srgb,var(--color-primary) 8%,transparent)"></div>
+        </div>
+      }
+    </div>
+  } @else if (items.length === 0) {
+    <div class="flex-1 flex items-center justify-center text-xs opacity-40" style="color:var(--color-text)">
+      <div class="text-center">
+        <i class="fa-solid fa-inbox mb-1 block text-lg"></i>
+        {{ msgVacio }}
+      </div>
+    </div>
+  } @else {
+    <!-- Área scrollable -->
+    <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2.5 pr-1"
+         style="scrollbar-width:thin; scrollbar-color:color-mix(in srgb,var(--color-primary) 20%,transparent) transparent">
+      @for (item of itemsOrdenados; track item.label) {
+        <div class="flex flex-col gap-1" (mouseenter)="onBarHover(item)">
+          <div class="flex items-center justify-between text-xs" style="color:var(--color-text)">
+            <span class="truncate max-w-[60%] opacity-80">{{ item.label }}</span>
+            <span class="font-semibold tabular-nums">
+              {{ item.valor | number }} &nbsp;
+              <span class="opacity-50 font-normal">({{ pct(item.valor) }}%)</span>
+            </span>
+          </div>
+          <div class="h-2 w-full rounded-full overflow-hidden"
+               style="background:color-mix(in srgb,var(--color-primary) 8%,transparent)">
+            <div class="h-full rounded-full transition-all duration-500"
+                 [style.width]="pct(item.valor) + '%'"
+                 [style.background]="item.color || 'var(--color-primary)'"></div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <app-chart-tooltip [state]="tooltip" [containerW]="containerW" />
+</div>

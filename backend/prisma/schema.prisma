@@ -1,0 +1,831 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  codigo       String   @id @default(uuid())
+  cedula       String   @unique
+  nombre       String
+  correo       String   @unique
+  celular      String?
+  password     String
+  estado       Int      @default(1)
+  dependencia  String?
+  centroCosto  String?
+  cargo        String?
+  empresa      String?
+  rol          String?
+  tipoContrato String?
+  fechaIngreso DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  permisos           Permiso[]
+  permisosLaborales  PermisoLaboral[]
+  permisosAsignados  PermisoAsignado[]
+  accesos            AccesoModulo[]
+  accesosPermisoLab  AccesoPermisoLaboral[]
+  accesosHoraExtra   AccesoHoraExtra[]
+  documentos         Documento[]        @relation("DocumentoCreador")
+  documentosPermisos DocumentoPermiso[]
+  tareasCreadas      Tarea[]            @relation("TareaCreador")
+  tareasAsignadas    TareaAsignado[]
+  comentarios        TareaComentario[]
+  equiposPropios     Equipo[]       @relation("EquipoPropietario")
+  equipoMiembros     EquipoMiembro[]
+  tablerosPropios    Tablero[]          @relation("TableroPropietario")
+  tableroMiembros    TableroMiembro[]
+  notificaciones     NotificacionTarea[]
+  auditorias         AuditoriaTarea[]
+  tareaChecklistItems ChecklistItem[]
+  empresaEmpresas    Empresa[]          @relation("EmpresaUsuario")
+}
+
+model Empresa {
+  nit    String @id
+  nombre String
+  logo   String?
+
+  empresasUsuario String?  @map("usuario_codigo")
+  usuario         Usuario? @relation("EmpresaUsuario", fields: [empresasUsuario], references: [codigo])
+  centrosCosto    CentroCosto[]
+  encabezados     EncabezadoSgc[]
+  acciones        AccionSgc[]
+  planes          PlanMejora[]
+  tickets         Ticket[]
+  paletaColores   PaletaColore?
+  reuniones       Reunion[]
+  formatos        FormatoSgc[]
+
+  @@map("empresas")
+}
+
+model CentroCosto {
+  id       String @id
+  nombre   String
+  empresaNit String @map("empresa_nit")
+  empresa  Empresa @relation(fields: [empresaNit], references: [nit])
+
+  @@map("centros_costo")
+}
+
+model Documento {
+  id                Int       @id @default(autoincrement())
+  titulo            String
+  contenido         String?
+  categoria         String?
+  empresa           String?
+  publico           Boolean   @default(false)
+  creadoPor         String?   @map("creado_por")
+  creador           Usuario?  @relation("DocumentoCreador", fields: [creadoPor], references: [codigo])
+  fechaCreacion     DateTime  @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+  permisos          DocumentoPermiso[]
+  imagenes          DocumentoImagen[]
+
+  @@map("documentos")
+}
+
+model DocumentoPermiso {
+  id          Int    @id @default(autoincrement())
+  documentoId Int    @map("documento_id")
+  documento   Documento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  codigoColab String @map("codigo_colab")
+  colaborador Usuario  @relation(fields: [codigoColab], references: [codigo])
+  tipo        Int
+
+  @@unique([documentoId, codigoColab])
+  @@map("documentos_permisos")
+}
+
+model DocumentoImagen {
+  id          Int    @id @default(autoincrement())
+  documentoId Int    @map("documento_id")
+  documento   Documento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  url         String
+  nombre      String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("documentos_imagenes")
+}
+
+model TipoPermisoDocumento {
+  id        Int    @id @default(autoincrement())
+  nombre    String
+  ver       Boolean @default(false)
+  crear     Boolean @default(false)
+  actualizar Boolean @default(false)
+  eliminar  Boolean @default(false)
+
+  @@map("tipos_permiso_documento")
+}
+
+model Tablero {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  color       String?
+  icono       String?
+  visibilidad String   @default("privado")
+  equipoId    Int?     @map("equipo_id")
+  propietario String?
+  propietarioRel Usuario? @relation("TableroPropietario", fields: [propietario], references: [codigo])
+  fechaCreacion DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  columnas   ColumnaTablero[]
+  etiquetas  EtiquetaTablero[]
+  miembros   TableroMiembro[]
+  tareas     Tarea[]
+
+  @@map("tableros")
+}
+
+model ColumnaTablero {
+  id        Int    @id @default(autoincrement())
+  tableroId Int    @map("tablero_id")
+  tablero   Tablero @relation(fields: [tableroId], references: [id], onDelete: Cascade)
+  nombre    String
+  color     String?
+  posicion  Int
+  tareas    Tarea[]
+
+  @@map("columnas_tablero")
+}
+
+model EtiquetaTablero {
+  id        Int    @id @default(autoincrement())
+  tableroId Int    @map("tablero_id")
+  tablero   Tablero @relation(fields: [tableroId], references: [id], onDelete: Cascade)
+  nombre    String
+  color     String
+
+  tareas TareaEtiqueta[]
+
+  @@map("etiquetas_tablero")
+}
+
+model TableroMiembro {
+  id          Int    @id @default(autoincrement())
+  tableroId   Int    @map("tablero_id")
+  tablero     Tablero @relation(fields: [tableroId], references: [id], onDelete: Cascade)
+  codigo      String
+  usuario     Usuario @relation(fields: [codigo], references: [codigo])
+  rol         String  @default("editor")
+
+  @@unique([tableroId, codigo])
+  @@map("tableros_miembros")
+}
+
+model Tarea {
+  id               Int      @id @default(autoincrement())
+  tableroId        Int      @map("tablero_id")
+  tablero          Tablero  @relation(fields: [tableroId], references: [id], onDelete: Cascade)
+  columnaId        Int      @map("columna_id")
+  columna          ColumnaTablero @relation(fields: [columnaId], references: [id])
+  titulo           String
+  descripcion      String?
+  prioridad        String   @default("media")
+  posicion         Int      @default(0)
+  fechaInicio      DateTime? @map("fecha_inicio")
+  fechaVencimiento DateTime? @map("fecha_vencimiento")
+  fechaCompletada  DateTime? @map("fecha_completada")
+  origen           String   @default("manual")
+  reunionId        String?  @map("reunion_id")
+  creadoPor        String?  @map("creado_por")
+  creador          Usuario? @relation("TareaCreador", fields: [creadoPor], references: [codigo])
+  fechaCreacion    DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  asignados     TareaAsignado[]
+  etiquetas     TareaEtiqueta[]
+  comentarios   TareaComentario[]
+  checklists    TareaChecklist[]
+  archivos      TareaArchivo[]
+  recordatorios TareaRecordatorio[]
+  historiales   HistorialTarea[]
+  auditorias    AuditoriaTarea[]
+
+  @@map("tareas")
+}
+
+model TareaAsignado {
+  id       Int    @id @default(autoincrement())
+  tareaId  Int    @map("tarea_id")
+  tarea    Tarea  @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  codigo   String
+  usuario  Usuario @relation(fields: [codigo], references: [codigo])
+  fechaAsignacion DateTime @default(now()) @map("fecha_asignacion")
+
+  @@unique([tareaId, codigo])
+  @@map("tareas_asignados")
+}
+
+model TareaEtiqueta {
+  tareaId   Int   @map("tarea_id")
+  tarea     Tarea @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  etiquetaId Int  @map("etiqueta_id")
+  etiqueta  EtiquetaTablero @relation(fields: [etiquetaId], references: [id], onDelete: Cascade)
+
+  @@id([tareaId, etiquetaId])
+  @@map("tareas_etiquetas")
+}
+
+model TareaComentario {
+  id          Int      @id @default(autoincrement())
+  tareaId     Int      @map("tarea_id")
+  tarea       Tarea    @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  autorCodigo String   @map("autor_codigo")
+  autor       Usuario  @relation(fields: [autorCodigo], references: [codigo])
+  comentario  String
+  fecha       DateTime @default(now())
+  editado     Boolean  @default(false)
+
+  @@map("tareas_comentarios")
+}
+
+model TareaChecklist {
+  id       Int    @id @default(autoincrement())
+  tareaId  Int    @map("tarea_id")
+  tarea    Tarea  @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  titulo   String
+  posicion Int    @default(0)
+  items    ChecklistItem[]
+
+  @@map("tareas_checklists")
+}
+
+model ChecklistItem {
+  id          Int      @id @default(autoincrement())
+  checklistId Int      @map("checklist_id")
+  checklist   TareaChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  texto       String
+  completado  Boolean  @default(false)
+  posicion    Int      @default(0)
+  completadoPor String? @map("completado_por")
+  completadoPorRel Usuario? @relation(fields: [completadoPor], references: [codigo])
+  fechaCompletado DateTime? @map("fecha_completado")
+
+  @@map("checklist_items")
+}
+
+model TareaArchivo {
+  id            Int      @id @default(autoincrement())
+  tareaId       Int      @map("tarea_id")
+  tarea         Tarea    @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  nombre        String
+  nombreOriginal String? @map("nombre_original")
+  url           String
+  tamanio       Int?
+  mime          String?
+  subidoPor     String?  @map("subido_por")
+  fechaSubida   DateTime @default(now()) @map("fecha_subida")
+
+  @@map("tareas_archivos")
+}
+
+model TareaRecordatorio {
+  id        Int      @id @default(autoincrement())
+  tareaId   Int      @map("tarea_id")
+  tarea     Tarea    @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  fecha     DateTime
+  mensaje   String?
+  notificado Boolean @default(false)
+
+  @@map("tareas_recordatorios")
+}
+
+model HistorialTarea {
+  id        Int      @id @default(autoincrement())
+  tareaId   Int      @map("tarea_id")
+  tarea     Tarea    @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  accion    String
+  detalle   String?
+  autorCodigo String @map("autor_codigo")
+  autorNombre String @map("autor_nombre")
+  fecha     DateTime @default(now())
+
+  @@map("tareas_historial")
+}
+
+model AuditoriaTarea {
+  id            Int      @id @default(autoincrement())
+  tareaId       Int      @map("tarea_id")
+  tarea         Tarea    @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  usuarioCodigo String   @map("usuario_codigo")
+  usuario       Usuario  @relation(fields: [usuarioCodigo], references: [codigo])
+  accion        String
+  campo         String?
+  valorAnterior String?  @map("valor_anterior")
+  valorNuevo    String?  @map("valor_nuevo")
+  descripcion   String?
+  ip            String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("tareas_auditoria")
+}
+
+model NotificacionTarea {
+  id             Int      @id @default(autoincrement())
+  tipo           String
+  paraCodigo     String   @map("para_codigo")
+  deCodigo       String   @map("de_codigo")
+  deNombre       String   @map("de_nombre")
+  referenciaId   Int      @map("referencia_id")
+  referenciaTitulo String @map("referencia_titulo")
+  leida          Boolean  @default(false)
+  fechaCreacion  DateTime @default(now()) @map("fecha_creacion")
+  usuario        Usuario  @relation(fields: [paraCodigo], references: [codigo])
+
+  @@map("notificaciones_tareas")
+}
+
+model Equipo {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  color       String?
+  propietario String?
+  propietarioRel Usuario? @relation("EquipoPropietario", fields: [propietario], references: [codigo])
+  fechaCreacion DateTime @default(now()) @map("fecha_creacion")
+  miembros    EquipoMiembro[]
+
+  @@map("equipos")
+}
+
+model EquipoMiembro {
+  id       Int    @id @default(autoincrement())
+  equipoId Int    @map("equipo_id")
+  equipo   Equipo @relation(fields: [equipoId], references: [id], onDelete: Cascade)
+  codigo   String
+  usuario  Usuario @relation(fields: [codigo], references: [codigo])
+  rol      String  @default("miembro")
+
+  @@unique([equipoId, codigo])
+  @@map("equipos_miembros")
+}
+
+model Recordatorio {
+  id               Int      @id @default(autoincrement())
+  titulo           String
+  descripcion      String?
+  tipo             String   @default("temporal")
+  alcance          String   @default("personal")
+  estado           String   @default("pendiente")
+  fechaUnica       DateTime? @map("fecha_unica")
+  hora             String?
+  frecuencia       String?
+  diasSemana       String?  @map("dias_semana")
+  diaMes           Int?     @map("dia_mes")
+  intervalodias    Int?     @map("intervalo_dias")
+  fechaInicio      DateTime? @map("fecha_inicio")
+  fechaFin         DateTime? @map("fecha_fin")
+  sinFechaFin      Boolean  @default(true) @map("sin_fecha_fin")
+  creadoPor        String   @map("creado_por")
+  creadoPorNombre  String   @map("creado_por_nombre")
+  fechaCreacion    DateTime @default(now()) @map("fecha_creacion")
+  proximaEjecucion DateTime? @map("proxima_ejecucion")
+  ultimaEjecucion  DateTime? @map("ultima_ejecucion")
+  totalEjecuciones Int      @default(0) @map("total_ejecuciones")
+  destinatarios    RecordatorioDestinatario[]
+
+  @@map("recordatorios")
+}
+
+model RecordatorioDestinatario {
+  id             Int    @id @default(autoincrement())
+  recordatorioId Int    @map("recordatorio_id")
+  recordatorio   Recordatorio @relation(fields: [recordatorioId], references: [id], onDelete: Cascade)
+  codigo         String
+  nombre         String
+  empresa        String?
+  leido          Boolean @default(false)
+
+  @@map("recordatorios_destinatarios")
+}
+
+model NotificacionRecordatorio {
+  id             Int      @id @default(autoincrement())
+  recordatorioId Int      @map("recordatorio_id")
+  titulo         String
+  descripcion    String?
+  fechaEjecucion DateTime @default(now()) @map("fecha_ejecucion")
+  leida          Boolean  @default(false)
+  completada     Boolean  @default(false)
+
+  @@map("notificaciones_recordatorios")
+}
+
+model Permiso {
+  id        Int    @id @default(autoincrement())
+  codigo    String
+  usuario   Usuario @relation(fields: [codigo], references: [codigo])
+  modulo    String
+  nombreModulo String @map("nombre_modulo")
+  tipoPermiso  String @map("tipo_permiso")
+  empresa   String?
+
+  @@map("permisos")
+}
+
+model PermisoAsignado {
+  id          Int    @id @default(autoincrement())
+  codigo      String
+  usuario     Usuario @relation(fields: [codigo], references: [codigo])
+  modulo      String
+  nombre      String
+  tipo        Int
+  nombreTipo  String  @map("nombre_tipo")
+  ver         Boolean @default(false)
+  crear       Boolean @default(false)
+  actualizar  Boolean @default(false)
+  eliminar    Boolean @default(false)
+  empresa     String
+
+  @@map("permisos_asignados")
+}
+
+model AccesoModulo {
+  id           Int    @id @default(autoincrement())
+  codigo       String
+  usuario      Usuario @relation(fields: [codigo], references: [codigo])
+  modulo       String
+  nombreModulo String @map("nombre_modulo")
+  tipoModulo   String @map("tipo_modulo")
+  tipoPermiso  String @map("tipo_permiso")
+  empresa      String
+
+  @@map("accesos_modulos")
+}
+
+model AccesoPermisoLaboral {
+  id           Int    @id @default(autoincrement())
+  codigo       String
+  usuario      Usuario @relation(fields: [codigo], references: [codigo])
+  idDependencia Int   @map("id_dependencia")
+  dependencia  String
+
+  @@map("accesos_permisos_laborales")
+}
+
+model AccesoHoraExtra {
+  id           Int    @id @default(autoincrement())
+  codigo       String
+  usuario      Usuario @relation(fields: [codigo], references: [codigo])
+  idDependencia Int   @map("id_dependencia")
+  dependencia  String
+  registrar    Boolean @default(false)
+  autorizar    Boolean @default(false)
+
+  @@map("accesos_horas_extras")
+}
+
+model ModuloApi {
+  id         Int    @id @default(autoincrement())
+  modulo     String @unique
+  nombre     String
+  tipoModulo Int    @map("tipo_modulo")
+  enlace     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("modulos_api")
+}
+
+model RolApi {
+  idRol   Int    @id @default(autoincrement()) @map("id_rol")
+  nombre  String @unique
+  createdAt  DateTime   @default(now()) @map("created_at")
+  rolesModulos RolModulo[]
+
+  @@map("roles_api")
+}
+
+model RolModulo {
+  id     Int @id @default(autoincrement())
+  rolId  Int @map("rol_id")
+  rol    RolApi @relation(fields: [rolId], references: [idRol], onDelete: Cascade)
+  modulo String
+  puedeVer     Boolean @default(false) @map("puede_ver")
+  puedeCrear   Boolean @default(false) @map("puede_crear")
+  puedeEditar  Boolean @default(false) @map("puede_editar")
+  puedeEliminar Boolean @default(false) @map("puede_eliminar")
+
+  @@unique([rolId, modulo])
+  @@map("roles_modulos")
+}
+
+model PermisoLaboral {
+  consecutivo      Int      @id @default(autoincrement())
+  codigoColab      String   @map("codigo_colab")
+  colaborador      Usuario  @relation(fields: [codigoColab], references: [codigo])
+  colaboradorNombre String  @map("colaborador_nombre")
+  fechaSalida      DateTime @map("fecha_salida")
+  fechaFinal       DateTime @map("fecha_final")
+  tipoPermiso      String   @map("tipo_permiso")
+  tipoNombre       String?  @map("tipo_nombre")
+  duracion         Int
+  compensado       String   @default("N")
+  remunerado       String   @default("N")
+  observacion      String?
+  remitirAutoriza  String?  @map("remitir_autoriza")
+  firmaSolicita    String?  @map("firma_solicita")
+  firmaAutoriza    String?  @map("firma_autoriza")
+  empresa          String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  tiemposCompensados TiempoCompensado[]
+
+  @@map("permisos_laborales")
+}
+
+model TiempoCompensado {
+  id              Int      @id @default(autoincrement())
+  permisoConsecutivo Int   @map("permiso_consecutivo")
+  permiso         PermisoLaboral @relation(fields: [permisoConsecutivo], references: [consecutivo], onDelete: Cascade)
+  fecha           DateTime
+  horaInicio      String   @map("hora_inicio")
+  horaFin         String   @map("hora_fin")
+  horasCompensadas Int     @map("horas_compensadas")
+  observacion     String?
+
+  @@map("tiempos_compensados")
+}
+
+model TipoPermisoLaboral {
+  codigo      String @id
+  nombre      String
+  descripcion String?
+
+  @@map("tipos_permiso_laboral")
+}
+
+model Reunion {
+  codigo          String   @id @default(uuid())
+  tema            String
+  fecha           DateTime
+  horaInicio      String   @map("hora_inicio")
+  horaFin         String   @map("hora_fin")
+  empresa         String
+  empresaRel      Empresa  @relation(fields: [empresa], references: [nit])
+  tipoEvento      Int?     @map("tipo_evento")
+  tipoReunion     Int?     @map("tipo_reunion")
+  objetivo        String?
+  conclusiones    String?
+  lugar           Int?
+  anfitrion       String?
+  lider           String?
+  secretario      String?
+  estado          Int      @default(1)
+
+  asistencias AsistenciaReunion[]
+  convocados  ReunionConvocado[]
+
+  @@map("reuniones")
+}
+
+model AsistenciaReunion {
+  id            Int      @id @default(autoincrement())
+  codigoReunion String   @map("codigo_reunion")
+  reunion       Reunion  @relation(fields: [codigoReunion], references: [codigo], onDelete: Cascade)
+  codigoColab   String   @map("codigo_colab")
+  colaboradorNombre String @map("colaborador_nombre")
+  colaboradorCedula String @map("colaborador_cedula")
+  fechaRegistro DateTime @default(now()) @map("fecha_registro")
+  horaRegistro  String   @map("hora_registro")
+  confirmacion  String   @default("N")
+  observacion   String?
+
+  @@map("asistencias_reunion")
+}
+
+model ReunionConvocado {
+  id            Int    @id @default(autoincrement())
+  codigoReunion String @map("codigo_reunion")
+  reunion       Reunion @relation(fields: [codigoReunion], references: [codigo], onDelete: Cascade)
+  codigoColab   String @map("codigo_colab")
+  nombre        String
+
+  @@unique([codigoReunion, codigoColab])
+  @@map("reuniones_convocados")
+}
+
+model TipoReunion {
+  id     Int    @id @default(autoincrement())
+  nombre String
+
+  @@map("tipos_reunion")
+}
+
+model LugarReunion {
+  id      Int    @id @default(autoincrement())
+  nombre  String
+  empresa String?
+
+  @@map("lugares_reunion")
+}
+
+model ProcesoReunion {
+  empresa String
+  id      Int
+  nombre  String
+
+  @@id([empresa, id])
+  @@map("procesos_reunion")
+}
+
+model FormatoSgc {
+  idFormato Int    @id @default(autoincrement()) @map("id_formato")
+  nombre    String
+  empresaNit String? @map("empresa_nit")
+  empresa   Empresa? @relation(fields: [empresaNit], references: [nit])
+
+  @@map("formatos_sgc")
+}
+
+model EncabezadoSgc {
+  id         Int    @id @default(autoincrement())
+  formato    Int
+  empresa    String
+  sgcTitulo1 String @map("sgc_titulo1")
+  sgcTitulo2 String @map("sgc_titulo2")
+  sgcTitulo3 String @map("sgc_titulo3")
+  sgcCodigo  String @map("sgc_codigo")
+  sgcVersion String @map("sgc_version")
+  sgcFecha   String @map("sgc_fecha")
+  icono      String?
+  nomEmpresa String @map("nom_empresa")
+  empresaRel Empresa @relation(fields: [empresa], references: [nit])
+
+  @@unique([formato, empresa])
+  @@map("encabezados_sgc")
+}
+
+model AccionSgc {
+  consecutivo   Int      @id @default(autoincrement())
+  empresa       String
+  empresaRel    Empresa  @relation(fields: [empresa], references: [nit])
+  numero        Int
+  tipoAccion    Int?     @map("tipo_accion")
+  origen        Int?     @map("origen")
+  nomTipo       String   @map("nom_tipo")
+  nomOrigen     String   @map("nom_origen")
+  descripcion   String
+  analisis      String?
+  evidencia     String?
+  fechaDeteccion DateTime @map("fecha_deteccion")
+  nomRegistradoPor String? @map("nom_registrado_por")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  actividades  ActividadSgc[]
+  seguimientos SeguimientoSgc[]
+
+  @@map("acciones_sgc")
+}
+
+model ActividadSgc {
+  id              Int      @id @default(autoincrement())
+  accionConsecutivo Int    @map("accion_consecutivo")
+  accion          AccionSgc @relation(fields: [accionConsecutivo], references: [consecutivo], onDelete: Cascade)
+  actividad       String
+  responsable     String?
+  nomResponsable  String?  @map("nom_responsable")
+  fechaImplementacion DateTime @map("fecha_implementacion")
+
+  @@map("actividades_sgc")
+}
+
+model SeguimientoSgc {
+  id              Int      @id @default(autoincrement())
+  accionConsecutivo Int    @map("accion_consecutivo")
+  accion          AccionSgc @relation(fields: [accionConsecutivo], references: [consecutivo], onDelete: Cascade)
+  actividad       String
+  nomResponsable  String   @map("nom_responsable")
+  fechaSeguimiento DateTime @map("fecha_seguimiento")
+
+  @@map("seguimientos_sgc")
+}
+
+model PlanMejora {
+  id              Int      @id @default(autoincrement())
+  empresa         String
+  empresaRel      Empresa  @relation(fields: [empresa], references: [nit])
+  optNombrePropuesta String @map("opt_nombre_propuesta")
+  optDescripcion  String?  @map("opt_descripcion")
+  optImportancia  String?  @map("opt_importancia")
+  optPosibleMejora String? @map("opt_posible_mejora")
+  optFechaSeguimiento DateTime? @map("opt_fecha_seguimiento")
+  optPasos        String?  @map("opt_pasos")
+  aliado          String?
+  nomAliado       String?  @map("nom_aliado")
+  tiempo          String?
+  valorHora       String?  @map("valor_hora")
+  optConclusion   String?  @map("opt_conclusion")
+  cerrado         Int      @default(0)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  seguimientos SeguimientoPlan[]
+
+  @@map("planes_mejora")
+}
+
+model SeguimientoPlan {
+  id          Int      @id @default(autoincrement())
+  planId      Int      @map("plan_id")
+  plan        PlanMejora @relation(fields: [planId], references: [id], onDelete: Cascade)
+  seguimiento String
+  fechaSeguimiento DateTime @map("fecha_seguimiento")
+  nomResponsable String? @map("nom_responsable")
+
+  @@map("seguimientos_planes")
+}
+
+model Ticket {
+  idTicket     Int      @id @default(autoincrement()) @map("id_ticket")
+  numeroTicket String   @unique @map("numero_ticket")
+  detalle      String
+  prioridadId  Int      @map("prioridad_id")
+  estadoId     Int      @map("estado_id")
+  categoriaId  Int      @map("categoria_id")
+  empresa      String
+  empresaRel   Empresa  @relation(fields: [empresa], references: [nit])
+  usuarioCodigo String? @map("usuario_codigo")
+  usuarioNombre String  @map("usuario_nombre")
+  fechaCreacion DateTime @default(now()) @map("fecha_creacion")
+  fechaCierre  DateTime? @map("fecha_cierre")
+  horasResolucion Int?  @map("horas_resolucion")
+
+  comentarios TicketComentario[]
+
+  @@map("tickets")
+}
+
+model TicketCategoria {
+  idCategoria Int    @id @default(autoincrement()) @map("id_categoria")
+  nombre      String
+
+  @@map("tickets_categorias")
+}
+
+model TicketEstado {
+  idEstado Int    @id @default(autoincrement()) @map("id_estado")
+  nombre   String
+  color    String @default("#6b7280")
+
+  @@map("tickets_estados")
+}
+
+model TicketPrioridad {
+  idPrioridad Int    @id @default(autoincrement()) @map("id_prioridad")
+  nombre      String
+  color       String @default("#6b7280")
+
+  @@map("tickets_prioridades")
+}
+
+model TicketComentario {
+  idComentario Int      @id @default(autoincrement()) @map("id_comentario")
+  ticketId     Int      @map("ticket_id")
+  ticket       Ticket   @relation(fields: [ticketId], references: [idTicket], onDelete: Cascade)
+  comentario   String
+  fecha        DateTime @default(now())
+  autorNombre  String   @map("autor_nombre")
+  esInterno    Boolean  @default(false) @map("es_interno")
+
+  @@map("tickets_comentarios")
+}
+
+model OtMantenimiento {
+  otConsecutivo          Int      @id @default(autoincrement()) @map("ot_consecutivo")
+  otFechaSolicitud       DateTime @default(now()) @map("ot_fecha_solicitud")
+  otEmpresa              String   @map("ot_empresa")
+  otSolicitanteUbicacion String   @map("ot_solicitante_ubicacion")
+  otSolicitanteDescripcion String @map("ot_solicitante_descripcion")
+  estado                 String?  @default("pendiente")
+  eotNombre              String?  @map("eot_nombre")
+
+  @@map("ots_mantenimiento")
+}
+
+model PaletaColore {
+  id              Int    @id @default(autoincrement())
+  empresaNit      String @unique @map("empresa_nit")
+  empresa         Empresa @relation(fields: [empresaNit], references: [nit])
+  primaryColor    String @default("#3b82f6") @map("primary_color")
+  colorPrimarioHover String @default("#2563eb") @map("color_primario_hover")
+  colorFondo      String @default("#f8fafc") @map("color_fondo")
+  colorAcento     String @default("#6366f1") @map("color_acento")
+  colorSecundario String @default("#64748b") @map("color_secundario")
+  colorTexto      String @default("#1e293b") @map("color_texto")
+  sidebarBg       String @default("#1e293b") @map("sidebar_bg")
+  sidebarText     String @default("#e2e8f0") @map("sidebar_text")
+  navbarBg        String @default("#ffffff") @map("navbar_bg")
+  navbarText      String @default("#1e293b") @map("navbar_text")
+  logo            String?
+
+  @@map("paleta_colores")
+}

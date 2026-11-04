@@ -1,0 +1,86 @@
+<div
+  class="w-full min-h-[calc(100vh-64px)] flex flex-col px-4 py-6"
+>
+  <!-- TÍTULO -->
+  <h2
+    class="text-[1.75rem] font-bold text-[var(--color-text)] mb-6 border-l-4 border-primary pl-3"
+  >
+    Usuarios registrados
+  </h2>
+  <div class="min-w-full ">
+    <!-- ========================= -->
+    <!-- 📊 TABLA (DESKTOP) -->
+    <!-- ========================= -->
+    <app-tabla-dinamica
+      class="hidden md:block"
+      [columnas]="columnas"
+      [items]="items"
+      [totalItems]="totalItems"
+      [paginaActual]="paginaActual"
+      [pageSize]="pageSize"
+      [cargando]="cargando"
+      [search]="search"
+      [filtrosSelect]="[
+        {
+          key: 'cedula',
+          label: 'Cédula',
+          opciones: cedulasUnicas,
+          valor: filtros.cedula,
+        },
+        {
+          key: 'genero',
+          label: 'Género',
+          opciones: generosUnicos,
+          valor: filtros.genero,
+        },
+        {
+          key: 'fecha_registro',
+          label: 'Fecha registro',
+          opciones: fechasRegistro,
+          valor: filtros.fecha_registro,
+        },
+      ]"
+      (buscar)="onBuscar($event)"
+      (filtrosChange)="onFiltrosChange($event)"
+      (paginaChange)="onPaginaChange($event)"
+    >
+    </app-tabla-dinamica>
+
+    <!-- ========================= -->
+    <!-- 📱 TARJETAS (MÓVIL) -->
+    <!-- ========================= -->
+    <app-tarjetas-dinamicas
+      class="block md:hidden"
+      [items]="items"
+      [config]="configTarjetas"
+      [totalItems]="totalItems"
+      [paginaActual]="paginaActual"
+      [pageSize]="pageSize"
+      [search]="search"
+      [filtrosSelect]="[
+        {
+          key: 'cedula',
+          label: 'Cédula',
+          opciones: cedulasUnicas,
+          valor: filtros.cedula,
+        },
+        {
+          key: 'genero',
+          label: 'Género',
+          opciones: generosUnicos,
+          valor: filtros.genero,
+        },
+        {
+          key: 'fecha_registro',
+          label: 'Fecha registro',
+          opciones: fechasRegistro,
+          valor: filtros.fecha_registro,
+        },
+      ]"
+      (buscar)="onBuscar($event)"
+      (filtrosChange)="onFiltrosChange($event)"
+      (paginaChange)="onPaginaChange($event)"
+    >
+    </app-tarjetas-dinamicas>
+  </div>
+</div>

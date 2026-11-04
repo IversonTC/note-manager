@@ -1,0 +1,796 @@
+<div [class]="compact
+  ? 'w-full'
+  : 'w-full min-h-[calc(100vh-64px)] flex justify-center items-center px-4 py-6 mb-16'">
+  <div [class]="compact ? 'w-full' : 'w-full max-w-screen-lg rounded-xl'"
+       [style]="compact ? '' : 'background:var(--color-bg-sidebar);color:var(--color-text)'">
+    <div [class]="compact ? 'w-full' : 'rounded-xl shadow-md overflow-hidden'"
+         [style]="compact ? '' : 'background:var(--color-card);color:var(--color-text)'">
+      <!-- Header: solo en modo normal -->
+      <div *ngIf="!compact && mostrarHeader" class="px-6 py-4 border-b"
+           style="background: var(--color-primary);
+                  border-color: color-mix(in srgb, var(--color-text) 15%, transparent);
+                  color: white;">
+        <h2 class="text-xl font-semibold">{{ titulo }}</h2>
+        <p class="text-sm opacity-90">{{ subtitulo }}</p>
+      </div>
+
+      <!-- FORM -->
+      <form
+        [formGroup]="formulario"
+        (ngSubmit)="onSubmit()"
+        [class]="compact
+          ? 'py-4 grid grid-cols-1 md:grid-cols-3 gap-4'
+          : 'p-6 grid grid-cols-1 md:grid-cols-3 gap-5'"
+      >
+        <!-- CAMPOS DINÁMICOS -->
+        <div
+          *ngFor="let campo of campos; trackBy: trackByCampo"
+          [ngClass]="
+            'md:col-span-' +
+            (campo.colSpan && campo.colSpan <= 3 ? campo.colSpan : 1)
+          "
+        >
+          <!-- ========================= -->
+          <!-- CAMPOS NORMALES -->
+          <!-- ========================= -->
+
+          <ng-container *ngIf="campo.tipo !== 'grupo'">
+            <!-- LABEL -->
+            <label class="block text-sm font-semibold mb-1" style="color: var(--color-text)">
+              {{ campo.label }}
+              <span *ngIf="campo.tipo === 'multi-select' && (multiSeleccionados[campo.campo!] || []).length > 0"
+                    class="ml-1 font-normal opacity-50 text-xs">
+                ({{ (multiSeleccionados[campo.campo!] || []).length }} seleccionados)
+              </span>
+            </label>
+
+            <!-- INPUT -->
+            <input
+              *ngIf="campo.tipo === 'input'"
+              [type]="campo.inputType || 'text'"
+              [maxlength]="campo.caracterMax || null"
+              [formControlName]="campo.campo!"
+              class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all"
+              style="
+                background: var(--color-bg);
+                border: 1px solid
+                  color-mix(in srgb, var(--color-text) 15%, transparent);
+                color: var(--color-text);
+              "
+              [class.border-red-500]="
+                formulario.get(campo.campo!)?.invalid &&
+                formulario.get(campo.campo!)?.touched
+              "
+            />
+
+            <input
+              *ngIf="campo.tipo === 'date'"
+              type="date"
+              placeholder="hola mundo"
+              [formControlName]="campo.campo!"
+              class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all"
+              style="
+                background: var(--color-bg);
+                border: 1px solid
+                  color-mix(in srgb, var(--color-text) 15%, transparent);
+                color: var(--color-text);
+              "
+            />
+
+            <!-- FILE / DOCUMENTOS -->
+                <div *ngIf="campo.tipo === 'file'" class="w-full">
+                  <label
+                    class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all hover:bg-gray-50"
+                    style="
+                      border-color: color-mix(
+                        in srgb,
+                        var(--color-text) 20%,
+                        transparent
+                      );
+                    "
+                  >
+                    <div
+                      class="flex flex-col items-center justify-center text-center"
+                    >
+                      <svg
+                        class="w-6 h-6 mb-2 opacity-70"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M12 16v-8m0 0l-3 3m3-3l3 3M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"
+                        />
+                      </svg>
+
+                      <p class="text-sm font-medium">Subir documento</p>
+
+                      <p class="text-xs opacity-70">PDF, DOC, DOCX</p>
+                    </div>
+
+                    <input
+                      type="file"
+                      class="hidden"
+                      [accept]="campo.accept || '.pdf,.doc,.docx'"
+                      (change)="onFileChange($event, campo.tipo!)"
+                    />
+                  </label>
+                </div>
+
+            <!-- IMAGEN -->
+                <div *ngIf="campo.tipo === 'imagen'" class="w-full">
+                  <label
+                    class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all hover:bg-gray-50"
+                    style="
+                      border-color: color-mix(
+                        in srgb,
+                        var(--color-text) 20%,
+                        transparent
+                      );
+                    "
+                  >
+                    <div class="flex flex-col items-center text-center">
+                      <svg
+                        class="w-7 h-7 mb-2 opacity-70"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M3 16l4-4a3 3 0 014 0l4 4m0 0l2-2a3 3 0 014 0l1 1m-7-7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+
+                      <p class="text-sm font-medium">Subir imagen</p>
+
+                      <p class="text-xs opacity-70">JPG, PNG</p>
+                    </div>
+
+                    <input
+                      type="file"
+                      class="hidden"
+                      accept="image/*"
+                      (change)="onFileChange($event, campo.tipo!)"
+                    />
+                  </label>
+                </div>
+
+            <!-- BOTON-ACCION: dispara evento al padre -->
+            <button
+              type="button"
+              *ngIf="campo.tipo === 'boton-accion'"
+              (click)="accion.emit(campo.campo)"
+              class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all flex items-center justify-between hover:opacity-80"
+              style="
+                background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+                border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+                color: var(--color-primary);
+                font-weight: 600;
+              "
+            >
+              <div class="flex items-center gap-2">
+                <i *ngIf="campo.icono" [class]="campo.icono"></i>
+                <span>{{ campo.textoBoton || campo.label }}</span>
+              </div>
+              <i class="fa-solid fa-chevron-right text-xs opacity-60"></i>
+            </button>
+
+            <!-- MODAL-SELECT: botón que abre drawer -->
+            <button
+              type="button"
+              *ngIf="campo.tipo === 'modal-select'"
+              (click)="abrirPanel(campo)"
+              class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all flex items-center justify-between"
+              style="
+                background: var(--color-bg);
+                border: 1px solid color-mix(in srgb, var(--color-text) 15%, transparent);
+                color: var(--color-text);
+              "
+              [style.borderColor]="
+                formulario.get(campo.campo!)?.invalid && formulario.get(campo.campo!)?.touched
+                  ? '#ef4444'
+                  : null
+              "
+            >
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-truck-front text-xs" style="color: var(--color-primary)"></i>
+                <span [class.opacity-50]="!labelsPorCampo[campo.campo!]">
+                  {{ labelsPorCampo[campo.campo!] || 'Seleccione ' + campo.label }}
+                </span>
+              </div>
+              <i class="fa-solid fa-chevron-right text-xs opacity-40"></i>
+            </button>
+
+            <!-- SEARCH-SELECT -->
+            <div *ngIf="campo.tipo === 'search-select'" class="relative">
+
+              <!-- Trigger -->
+              <button
+                type="button"
+                (click)="toggleSearchSelect(campo, $event)"
+                class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all flex items-center justify-between gap-2 overflow-hidden"
+                style="
+                  background: var(--color-bg);
+                  border: 1px solid color-mix(in srgb, var(--color-text) 15%, transparent);
+                  color: var(--color-text);
+                "
+                [style.borderColor]="
+                  formulario.get(campo.campo!)?.invalid && formulario.get(campo.campo!)?.touched
+                    ? '#ef4444' : null
+                "
+              >
+                <span class="truncate flex-1 min-w-0 text-left" [class.opacity-40]="!labelsPorCampo[campo.campo!]"
+                      [title]="labelsPorCampo[campo.campo!] || ''">
+                  {{ labelsPorCampo[campo.campo!] || 'Seleccione...' }}
+                </span>
+                <i class="fa-solid text-xs opacity-40 flex-shrink-0"
+                  [class.fa-chevron-down]="searchAbierto !== campo.campo"
+                  [class.fa-chevron-up]="searchAbierto === campo.campo"></i>
+              </button>
+
+              <!-- Dropdown: position:fixed anclado por coordenadas para escapar de
+                   ancestros con overflow:hidden (ver calcularPosicionDropdown) -->
+              <div
+                *ngIf="searchAbierto === campo.campo"
+                class="fixed z-50 rounded-xl overflow-hidden shadow-xl flex flex-col"
+                [style.left.px]="dropdownPos[campo.campo!]?.left"
+                [style.width.px]="dropdownPos[campo.campo!]?.width"
+                [style.top.px]="dropdownPos[campo.campo!]?.top"
+                [style.bottom.px]="dropdownPos[campo.campo!]?.bottom"
+                [style.max-height.px]="dropdownPos[campo.campo!]?.maxHeight ?? 260"
+                style="
+                  background: var(--color-bg-sidebar);
+                  border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+                "
+              >
+                <!-- Buscador interno -->
+                <div class="p-2 flex-shrink-0" style="border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent)">
+                  <div class="relative">
+                    <i class="fa-solid fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-xs opacity-40"></i>
+                    <input
+                      type="text"
+                      [(ngModel)]="searchTexto[campo.campo!]"
+                      (ngModelChange)="onSearchTextoChange(campo)"
+                      [ngModelOptions]="{standalone: true}"
+                      placeholder="Buscar..."
+                      class="w-full pl-8 pr-3 py-1.5 rounded-lg text-sm outline-none"
+                      style="
+                        background: var(--color-bg);
+                        border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+                        color: var(--color-text);
+                      "
+                    />
+                  </div>
+                </div>
+
+                <!-- Lista filtrada -->
+                <ul class="flex-1 min-h-0 overflow-y-auto py-1">
+                  <li *ngIf="buscandoRemoto[campo.campo!]"
+                      class="px-3 py-3 text-sm opacity-50 text-center flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Buscando...
+                  </li>
+                  <li *ngIf="!buscandoRemoto[campo.campo!] && errorBusquedaRemota[campo.campo!]"
+                      class="px-3 py-3 text-sm text-center" style="color:#ef4444">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>{{ errorBusquedaRemota[campo.campo!] }}
+                  </li>
+                  <ng-container *ngIf="!buscandoRemoto[campo.campo!] && !errorBusquedaRemota[campo.campo!]">
+                    <li
+                      *ngFor="let op of opcionesFiltradas(campo)"
+                      (click)="seleccionarSearchOption(campo, op)"
+                      [title]="op.label"
+                      class="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-all"
+                      [style.background]="
+                        formulario.get(campo.campo!)?.value == op.value
+                          ? 'rgba(var(--color-primary-rgb), 0.08)' : 'transparent'
+                      "
+                      style="color: var(--color-text)"
+                      onmouseover="this.style.background='rgba(var(--color-primary-rgb), 0.05)'"
+                      onmouseout="this.style.background= this.dataset['selected'] === 'true' ? 'rgba(var(--color-primary-rgb), 0.08)' : 'transparent'"
+                    >
+                      <i
+                        *ngIf="formulario.get(campo.campo!)?.value == op.value"
+                        class="fa-solid fa-check text-xs flex-shrink-0"
+                        style="color: var(--color-primary)"
+                      ></i>
+                      <i *ngIf="formulario.get(campo.campo!)?.value != op.value" class="fa-solid fa-check text-xs flex-shrink-0 opacity-0"></i>
+                      <span class="truncate flex-1 min-w-0">{{ op.label }}</span>
+                    </li>
+                    <li *ngIf="opcionesFiltradas(campo).length === 0"
+                      class="px-3 py-3 text-sm opacity-40 text-center">
+                      Sin resultados
+                    </li>
+                  </ng-container>
+                </ul>
+              </div>
+
+              <!-- Overlay para cerrar al hacer clic fuera -->
+              <div
+                *ngIf="searchAbierto === campo.campo"
+                class="fixed inset-0 z-40"
+                (click)="cerrarSearchSelect()"
+              ></div>
+            </div>
+
+            <!-- SELECT -->
+            <select
+              *ngIf="campo.tipo === 'select'"
+              [formControlName]="campo.campo!"
+              class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all"
+              style="
+                background: var(--color-bg);
+                border: 1px solid
+                  color-mix(in srgb, var(--color-text) 15%, transparent);
+                color: var(--color-text);
+              "
+              [class.border-red-500]="
+                formulario.get(campo.campo!)?.invalid &&
+                formulario.get(campo.campo!)?.touched
+              "
+            >
+              <option value="">Seleccione...</option>
+
+              <option
+                *ngFor="let op of campo.opciones || []"
+                [value]="op.value"
+              >
+                {{ op.label }}
+              </option>
+            </select>
+
+            <!-- MULTI-SELECT -->
+            <div *ngIf="campo.tipo === 'multi-select'" class="relative">
+
+              <!-- Trigger: chips de seleccionados + placeholder -->
+              <button type="button"
+                      (click)="toggleMultiSelect(campo, $event)"
+                      class="w-full min-h-[38px] px-3 py-1.5 rounded-lg text-sm text-left transition-all flex flex-wrap items-center gap-1.5"
+                      style="background:var(--color-bg);
+                             border:1px solid color-mix(in srgb,var(--color-text) 15%,transparent);
+                             color:var(--color-text)">
+                <ng-container *ngIf="(multiSeleccionados[campo.campo!] || []).length > 0; else placeholderMulti">
+                  <span *ngFor="let v of multiSeleccionados[campo.campo!]"
+                        class="inline-flex items-center gap-1 max-w-[200px] px-2 py-0.5 rounded-md text-xs font-medium text-white"
+                        style="background:var(--color-primary)"
+                        [title]="getLabelForValue(campo, v)">
+                    <span class="truncate">{{ getLabelForValue(campo, v) }}</span>
+                    <i class="fa-solid fa-xmark cursor-pointer text-[10px] flex-shrink-0"
+                       (click)="removeMultiItem(campo.campo!, v, $event)"></i>
+                  </span>
+                </ng-container>
+                <ng-template #placeholderMulti>
+                  <span class="opacity-40 text-sm">Seleccione opciones...</span>
+                </ng-template>
+                <i class="fa-solid ml-auto text-xs opacity-40 flex-shrink-0"
+                   [class.fa-chevron-down]="multiAbierto !== campo.campo"
+                   [class.fa-chevron-up]="multiAbierto === campo.campo"></i>
+              </button>
+
+              <!-- Dropdown: position:fixed anclado por coordenadas para escapar de
+                   ancestros con overflow:hidden (ver calcularPosicionDropdown) -->
+              <div *ngIf="multiAbierto === campo.campo"
+                   class="fixed z-50 rounded-xl overflow-hidden shadow-xl flex flex-col"
+                   [style.left.px]="dropdownPos[campo.campo!]?.left"
+                   [style.width.px]="dropdownPos[campo.campo!]?.width"
+                   [style.top.px]="dropdownPos[campo.campo!]?.top"
+                   [style.bottom.px]="dropdownPos[campo.campo!]?.bottom"
+                   [style.max-height.px]="dropdownPos[campo.campo!]?.maxHeight ?? 260"
+                   style="background:var(--color-bg-sidebar);
+                          border:1px solid color-mix(in srgb,var(--color-text) 12%,transparent)">
+
+                <!-- Buscador -->
+                <div class="p-2 flex-shrink-0" style="border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent)">
+                  <div class="flex items-center gap-2">
+                    <div class="relative flex-1">
+                      <i class="fa-solid fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-xs opacity-40"></i>
+                      <input type="text"
+                             [(ngModel)]="multiSearchTexto[campo.campo!]"
+                             (ngModelChange)="onMultiSearchTextoChange(campo)"
+                             [ngModelOptions]="{standalone: true}"
+                             placeholder="Buscar..."
+                             class="w-full pl-8 pr-3 py-1.5 rounded-lg text-sm outline-none"
+                             style="background:var(--color-bg);
+                                    border:1px solid color-mix(in srgb,var(--color-text) 10%,transparent);
+                                    color:var(--color-text)"/>
+                    </div>
+                    <!-- Contador seleccionados -->
+                    <span class="text-xs font-semibold px-2 py-1 rounded-lg flex-shrink-0"
+                          style="background:color-mix(in srgb,var(--color-primary) 12%,transparent);color:var(--color-primary)">
+                      {{ (multiSeleccionados[campo.campo!] || []).length }}
+                    </span>
+                  </div>
+                  <!-- Acciones rápidas -->
+                  <div class="flex gap-2 mt-1.5">
+                    <button type="button"
+                            (click)="seleccionarTodos(campo)"
+                            class="text-xs px-2 py-0.5 rounded transition"
+                            style="color:var(--color-primary)">
+                      Todos
+                    </button>
+                    <button type="button"
+                            (click)="deseleccionarTodos(campo)"
+                            class="text-xs px-2 py-0.5 rounded transition text-gray-400 hover:text-red-400">
+                      Ninguno
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Lista -->
+                <ul class="flex-1 min-h-0 overflow-y-auto py-1">
+                  <li *ngIf="buscandoRemoto[campo.campo!]"
+                      class="px-3 py-3 text-sm opacity-50 text-center flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Buscando...
+                  </li>
+                  <li *ngIf="!buscandoRemoto[campo.campo!] && errorBusquedaRemota[campo.campo!]"
+                      class="px-3 py-3 text-sm text-center" style="color:#ef4444">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>{{ errorBusquedaRemota[campo.campo!] }}
+                  </li>
+                  <ng-container *ngIf="!buscandoRemoto[campo.campo!] && !errorBusquedaRemota[campo.campo!]">
+                    <li *ngFor="let op of opcionesMultiFiltradas(campo)"
+                        (click)="toggleMultiOpcion(campo, op)"
+                        class="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer transition-all"
+                        [style.background]="isMultiSel(campo.campo!, op.value)
+                          ? 'color-mix(in srgb,var(--color-primary) 8%,transparent)'
+                          : 'transparent'"
+                        style="color:var(--color-text)">
+                      <!-- Checkbox visual -->
+                      <div class="w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all"
+                           [style]="isMultiSel(campo.campo!, op.value)
+                             ? 'background:var(--color-primary);border-color:var(--color-primary)'
+                             : 'border-color:color-mix(in srgb,var(--color-text) 30%,transparent)'">
+                        <i *ngIf="isMultiSel(campo.campo!, op.value)"
+                           class="fa-solid fa-check text-white text-[8px]"></i>
+                      </div>
+                      <span class="flex-1 truncate" [title]="op.label">{{ op.label }}</span>
+                    </li>
+                    <li *ngIf="opcionesMultiFiltradas(campo).length === 0"
+                        class="px-3 py-3 text-sm opacity-40 text-center">Sin resultados</li>
+                  </ng-container>
+                </ul>
+              </div>
+
+              <!-- Overlay para cerrar -->
+              <div *ngIf="multiAbierto === campo.campo"
+                   class="fixed inset-0 z-40"
+                   (click)="cerrarMultiSelect()"></div>
+            </div>
+
+            <!-- TEXTAREA -->
+            <textarea
+              *ngIf="campo.tipo === 'textarea'"
+              [formControlName]="campo.campo!"
+              rows="3"
+              class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all resize-y"
+              style="
+                background: var(--color-bg);
+                border: 1px solid color-mix(in srgb, var(--color-text) 15%, transparent);
+                color: var(--color-text);
+              "
+              [class.border-red-500]="
+                formulario.get(campo.campo!)?.invalid &&
+                formulario.get(campo.campo!)?.touched
+              "
+            ></textarea>
+
+            <!-- ERROR -->
+            <p
+              *ngIf="
+                formulario.get(campo.campo!)?.invalid &&
+                formulario.get(campo.campo!)?.touched
+              "
+              class="text-xs mt-1"
+              style="color: #ef4444"
+            >
+              Campo inválido
+            </p>
+          </ng-container>
+
+          <!-- ========================= -->
+          <!-- GRUPO DE CAMPOS -->
+          <!-- ========================= -->
+
+          <ng-container *ngIf="campo.tipo === 'grupo'">
+            <div class="grid md:grid-cols-3 gap-4">
+              <div *ngFor="let hijo of campo.camposHijos">
+                <label
+                  class="block text-sm font-semibold mb-1"
+                  style="color: var(--color-text)"
+                >
+                  {{ hijo.label }}
+                </label>
+
+                <!-- INPUT -->
+                <input
+                  *ngIf="hijo.tipo === 'input'"
+                  [type]="hijo.inputType || 'text'"
+                  [maxlength]="campo.caracterMax || null"
+                  [formControlName]="hijo.campo!"
+                  class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all"
+                  style="
+                    background: var(--color-bg);
+                    border: 1px solid
+                      color-mix(in srgb, var(--color-text) 15%, transparent);
+                    color: var(--color-text);
+                  "
+                />
+
+                <input
+                  *ngIf="hijo.tipo === 'date'"
+                  type="date"
+                  [formControlName]="hijo.campo!"
+                  class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all"
+                  style="
+                    background: var(--color-bg);
+                    border: 1px solid
+                      color-mix(in srgb, var(--color-text) 15%, transparent);
+                    color: var(--color-text);
+                  "
+                />
+
+                <!-- FILE / DOCUMENTOS -->
+                <div *ngIf="hijo.tipo === 'file'" class="w-full">
+                  <label
+                    class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all hover:bg-gray-50"
+                    style="
+                      border-color: color-mix(
+                        in srgb,
+                        var(--color-text) 20%,
+                        transparent
+                      );
+                    "
+                  >
+                    <div
+                      class="flex flex-col items-center justify-center text-center"
+                    >
+                      <svg
+                        class="w-6 h-6 mb-2 opacity-70"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M12 16v-8m0 0l-3 3m3-3l3 3M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"
+                        />
+                      </svg>
+
+                      <p class="text-sm font-medium">Subir documento</p>
+
+                      <p class="text-xs opacity-70">PDF, DOC, DOCX</p>
+                    </div>
+
+                    <input
+                      type="file"
+                      class="hidden"
+                      [accept]="hijo.accept || '.pdf,.doc,.docx'"
+                      (change)="onFileChange($event, hijo.campo!)"
+                    />
+                  </label>
+                </div>
+
+                <!-- IMAGEN -->
+                <div *ngIf="hijo.tipo === 'imagen'" class="w-full">
+                  <label
+                    class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all hover:bg-gray-50"
+                    style="
+                      border-color: color-mix(
+                        in srgb,
+                        var(--color-text) 20%,
+                        transparent
+                      );
+                    "
+                  >
+                    <div class="flex flex-col items-center text-center">
+                      <svg
+                        class="w-7 h-7 mb-2 opacity-70"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M3 16l4-4a3 3 0 014 0l4 4m0 0l2-2a3 3 0 014 0l1 1m-7-7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+
+                      <p class="text-sm font-medium">Subir imagen</p>
+
+                      <p class="text-xs opacity-70">JPG, PNG</p>
+                    </div>
+
+                    <input
+                      type="file"
+                      class="hidden"
+                      accept="image/*"
+                      (change)="onFileChange($event, hijo.campo!)"
+                    />
+                  </label>
+                </div>
+
+                <!-- SELECT -->
+                <select
+                  *ngIf="hijo.tipo === 'select'"
+                  [formControlName]="hijo.campo!"
+                  class="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all"
+                  style="
+                    background: var(--color-bg);
+                    border: 1px solid
+                      color-mix(in srgb, var(--color-text) 15%, transparent);
+                    color: var(--color-text);
+                  "
+                >
+                  <option value="">Seleccione...</option>
+
+                  <option
+                    *ngFor="let op of hijo.opciones || []"
+                    [value]="op.value"
+                  >
+                    {{ op.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- BOTONES -->
+        <div
+          class="md:col-span-3 flex justify-end gap-3 pt-4"
+          style="
+            border-top: 1px solid
+              color-mix(in srgb, var(--color-text) 10%, transparent);
+          "
+        >
+          <button
+            type="button"
+            (click)="reset()"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            style="
+              background: color-mix(in srgb, var(--color-text) 8%, transparent);
+              color: var(--color-text);
+            "
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            [disabled]="formulario.invalid"
+            class="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50 active:scale-95"
+            style="background: var(--color-primary)"
+          >
+            <i class="fa-solid fa-floppy-disk"></i>
+            {{ textoSubmit || (compact ? 'Registrar' : 'Guardar') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     DRAWER MODAL-SELECT
+══════════════════════════════════════ -->
+
+<!-- Overlay -->
+<div
+  *ngIf="panelCampo"
+  (click)="cerrarPanel()"
+  class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+></div>
+
+<!-- Panel lateral -->
+<div
+  class="fixed z-[110] flex flex-col transition-all duration-300 ease-out
+         bottom-0 left-0 right-0 h-[70%] rounded-t-3xl
+         md:top-0 md:right-0 md:left-auto md:h-full md:w-[400px] md:rounded-none"
+  [ngClass]="{
+    'translate-y-0':    !!panelCampo,
+    'translate-y-full': !panelCampo,
+    'md:translate-x-0':    !!panelCampo,
+    'md:translate-x-full': !panelCampo
+  }"
+  style="
+    background: var(--color-bg-sidebar);
+    border-left: 1px solid rgba(var(--color-primary-rgb), 0.12);
+    box-shadow: -20px 0 60px rgba(0,0,0,0.15);
+  "
+>
+  <!-- Tirador móvil -->
+  <div class="md:hidden flex justify-center py-2">
+    <div class="w-10 h-1.5 rounded-full bg-gray-400/40"></div>
+  </div>
+
+  <!-- Header -->
+  <div
+    class="flex-shrink-0 px-6 pt-5 pb-4"
+    style="border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.08)"
+  >
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-1 h-5 rounded-full" style="background: var(--color-primary)"></div>
+        <h2 class="text-base font-bold pl-3" style="color: var(--color-text)">
+          {{ panelCampo?.label }}
+        </h2>
+      </div>
+      <button
+        type="button"
+        (click)="cerrarPanel()"
+        class="flex items-center justify-center w-8 h-8 rounded-xl transition-all hover:scale-105 active:scale-95"
+        style="
+          background: rgba(var(--color-primary-rgb), 0.08);
+          border: 1px solid rgba(var(--color-primary-rgb), 0.12);
+          color: var(--color-text);
+        "
+      >
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
+    </div>
+    <p class="text-xs opacity-50 mt-1 pl-4">Selecciona una opción de la lista</p>
+  </div>
+
+  <!-- Lista de opciones -->
+  <div class="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2.5">
+
+    <div
+      *ngFor="let op of panelCampo?.opciones || []"
+      (click)="seleccionarOpcion(op)"
+      class="relative rounded-2xl cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md overflow-hidden"
+      [style.background]="
+        formulario.get(panelCampo?.campo!)?.value == op.value
+          ? 'rgba(var(--color-primary-rgb), 0.08)'
+          : 'rgba(var(--color-primary-rgb), 0.02)'
+      "
+      [style.border]="
+        formulario.get(panelCampo?.campo!)?.value == op.value
+          ? '1px solid rgba(var(--color-primary-rgb), 0.30)'
+          : '1px solid rgba(var(--color-primary-rgb), 0.08)'
+      "
+    >
+      <!-- Barra lateral cuando está seleccionado -->
+      <div
+        class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl transition-opacity duration-200"
+        style="background: var(--color-primary)"
+        [style.opacity]="formulario.get(panelCampo?.campo!)?.value == op.value ? '1' : '0'"
+      ></div>
+
+      <div class="flex items-center gap-3 p-4 pl-5">
+        <div
+          class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style="background: rgba(var(--color-primary-rgb), 0.10)"
+        >
+          <i class="fa-solid fa-truck-front text-sm" style="color: var(--color-primary)"></i>
+        </div>
+
+        <div class="flex-1">
+          <p class="text-sm font-semibold" style="color: var(--color-text)">{{ op.label }}</p>
+        </div>
+
+        <i
+          *ngIf="formulario.get(panelCampo?.campo!)?.value == op.value"
+          class="fa-solid fa-circle-check text-lg"
+          style="color: var(--color-primary)"
+        ></i>
+      </div>
+    </div>
+
+    <!-- Spinner mientras cargan las opciones -->
+    <div
+      *ngIf="!panelCampo?.opciones?.length"
+      class="flex flex-col items-center justify-center py-12 opacity-40"
+    >
+      <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2" style="color: var(--color-primary)"></i>
+      <p class="text-sm">Cargando opciones...</p>
+    </div>
+
+  </div>
+</div>

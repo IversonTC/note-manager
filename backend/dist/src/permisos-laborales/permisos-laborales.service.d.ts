@@ -1,0 +1,105 @@
+import { PrismaService } from '../prisma/prisma.service';
+import { CrearPermisoLaboralDto } from './dto/crear-permiso-laboral.dto';
+import { FirmarPermisoDto } from './dto/firmar-permiso.dto';
+export declare class PermisosLaboralesService {
+    private prisma;
+    constructor(prisma: PrismaService);
+    findTipos(): import("@prisma/client").Prisma.PrismaPromise<{
+        codigo: string;
+        nombre: string;
+        descripcion: string | null;
+    }[]>;
+    create(dto: CrearPermisoLaboralDto): Promise<{
+        empresa: string | null;
+        createdAt: Date;
+        codigoColab: string;
+        tipoPermiso: string;
+        colaboradorNombre: string;
+        observacion: string | null;
+        fechaSalida: Date;
+        fechaFinal: Date;
+        tipoNombre: string | null;
+        duracion: number;
+        compensado: string;
+        remunerado: string;
+        remitirAutoriza: string | null;
+        firmaSolicita: string | null;
+        firmaAutoriza: string | null;
+        consecutivo: number;
+    }>;
+    findPendientesFirmar(): import("@prisma/client").Prisma.PrismaPromise<{
+        empresa: string | null;
+        createdAt: Date;
+        codigoColab: string;
+        tipoPermiso: string;
+        colaboradorNombre: string;
+        observacion: string | null;
+        fechaSalida: Date;
+        fechaFinal: Date;
+        tipoNombre: string | null;
+        duracion: number;
+        compensado: string;
+        remunerado: string;
+        remitirAutoriza: string | null;
+        firmaSolicita: string | null;
+        firmaAutoriza: string | null;
+        consecutivo: number;
+    }[]>;
+    findPendientesAutorizar(): import("@prisma/client").Prisma.PrismaPromise<{
+        empresa: string | null;
+        createdAt: Date;
+        codigoColab: string;
+        tipoPermiso: string;
+        colaboradorNombre: string;
+        observacion: string | null;
+        fechaSalida: Date;
+        fechaFinal: Date;
+        tipoNombre: string | null;
+        duracion: number;
+        compensado: string;
+        remunerado: string;
+        remitirAutoriza: string | null;
+        firmaSolicita: string | null;
+        firmaAutoriza: string | null;
+        consecutivo: number;
+    }[]>;
+    firmar(consecutivo: number, dto: FirmarPermisoDto): Promise<{
+        empresa: string | null;
+        createdAt: Date;
+        codigoColab: string;
+        tipoPermiso: string;
+        colaboradorNombre: string;
+        observacion: string | null;
+        fechaSalida: Date;
+        fechaFinal: Date;
+        tipoNombre: string | null;
+        duracion: number;
+        compensado: string;
+        remunerado: string;
+        remitirAutoriza: string | null;
+        firmaSolicita: string | null;
+        firmaAutoriza: string | null;
+        consecutivo: number;
+    }>;
+    findHistorial(empresa?: string, fecha_inicio?: string, fecha_fin?: string): import("@prisma/client").Prisma.PrismaPromise<{
+        empresa: string | null;
+        createdAt: Date;
+        codigoColab: string;
+        tipoPermiso: string;
+        colaboradorNombre: string;
+        observacion: string | null;
+        fechaSalida: Date;
+        fechaFinal: Date;
+        tipoNombre: string | null;
+        duracion: number;
+        compensado: string;
+        remunerado: string;
+        remitirAutoriza: string | null;
+        firmaSolicita: string | null;
+        firmaAutoriza: string | null;
+        consecutivo: number;
+    }[]>;
+    generarPdf(consecutivo: number): Promise<{
+        url: string;
+    }>;
+}

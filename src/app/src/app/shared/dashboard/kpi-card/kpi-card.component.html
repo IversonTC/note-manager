@@ -1,0 +1,45 @@
+<div class="rounded-2xl p-4 flex items-center gap-3"
+     style="background:var(--color-bg-sidebar);border:1px solid color-mix(in srgb,var(--color-primary) 10%,transparent)">
+
+  @if (cargando) {
+    <!-- Skeleton -->
+    <div class="w-11 h-11 rounded-xl animate-pulse"
+         style="background:color-mix(in srgb,var(--color-primary) 10%,transparent)"></div>
+    <div class="flex-1 space-y-2">
+      <div class="h-6 w-24 rounded animate-pulse"
+           style="background:color-mix(in srgb,var(--color-primary) 10%,transparent)"></div>
+      <div class="h-3 w-16 rounded animate-pulse"
+           style="background:color-mix(in srgb,var(--color-primary) 6%,transparent)"></div>
+    </div>
+  } @else {
+    <!-- Icon circle -->
+    <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+         [style.background]="colorFondo">
+      @if (icono) {
+        <i [class]="icono + ' text-base'" [style.color]="colorIcono"></i>
+      }
+    </div>
+
+    <!-- Value + title -->
+    <div class="flex-1 min-w-0">
+      <div class="text-2xl font-bold leading-tight truncate" style="color:var(--color-text)">
+        {{ valor }}
+      </div>
+      <div class="text-xs opacity-60 truncate" style="color:var(--color-text)">{{ titulo }}</div>
+
+      @if (subtitulo) {
+        <div class="text-xs opacity-40 mt-0.5 truncate" style="color:var(--color-text)">{{ subtitulo }}</div>
+      }
+
+      @if (tendencia !== null) {
+        <div class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-medium"
+             [style.background]="tendencia >= 0 ? '#22c55e20' : '#ef444420'"
+             [style.color]="tendencia >= 0 ? '#16a34a' : '#dc2626'">
+          <i [class]="tendencia >= 0 ? 'fa-solid fa-arrow-trend-up' : 'fa-solid fa-arrow-trend-down'" class="text-[10px]"></i>
+          {{ tendencia >= 0 ? '+' : '' }}{{ tendencia }}%
+        </div>
+      }
+    </div>
+  }
+
+</div>

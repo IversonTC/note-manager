@@ -1,0 +1,151 @@
+<div class="rounded-2xl p-4 flex flex-col gap-2 h-full relative"
+     style="background:var(--color-bg-sidebar);border:1px solid color-mix(in srgb,var(--color-primary) 10%,transparent)"
+     (mousemove)="onSvgMove($event)" (mouseleave)="onLeave()">
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- Header + leyenda inline — CLASICA                                       -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  @if (variante === 'clasica') {
+    <div class="flex items-center justify-between flex-wrap gap-2 flex-shrink-0">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-chart-line text-sm" style="color:var(--color-primary)"></i>
+        <span class="text-sm font-semibold" style="color:var(--color-text)">{{ titulo }}</span>
+      </div>
+      @if (!cargando && series.length > 0) {
+        <div class="flex flex-wrap gap-3">
+          @for (s of series; track s.nombre) {
+            <div class="flex items-center gap-1.5 text-xs opacity-70" style="color:var(--color-text)">
+              <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0"
+                    [style.background]="s.color"></span>
+              {{ s.nombre }}
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- Header compacto — COMPACTA y MINIMA                                     -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  @if (variante !== 'clasica') {
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <i class="fa-solid fa-chart-line text-sm" style="color:var(--color-primary)"></i>
+      <span class="text-sm font-semibold" style="color:var(--color-text)">{{ titulo }}</span>
+    </div>
+  }
+
+  <!-- ── SKELETON ──────────────────────────────────────────────────────────── -->
+  @if (cargando) {
+    <div class="flex-1 min-h-0 w-full rounded-xl animate-pulse"
+         style="background:color-mix(in srgb,var(--color-primary) 8%,transparent)"></div>
+
+  <!-- ── SIN DATOS ─────────────────────────────────────────────────────────── -->
+  } @else if (series.length === 0 || numPuntos === 0) {
+    <div class="flex-1 flex items-center justify-center text-xs opacity-40" style="color:var(--color-text)">
+      <div class="text-center">
+        <i class="fa-solid fa-chart-line mb-1 block text-lg"></i>
+        {{ msgVacio }}
+      </div>
+    </div>
+
+  <!-- ── SVG ───────────────────────────────────────────────────────────────── -->
+  } @else {
+    <div class="flex-1 min-h-0 overflow-hidden">
+      <svg [attr.viewBox]="viewBox" class="w-full h-full"
+           preserveAspectRatio="xMidYMid meet" style="display:block">
+
+        <!-- Grid lines — solo CLASICA -->
+        @if (variante === 'clasica') {
+          @for (y of gridLines; track y) {
+            <line x1="50" [attr.y1]="y" x2="550" [attr.y2]="y"
+                  stroke="currentColor" stroke-width="0.5" opacity="0.12"
+                  style="color:var(--color-text)" />
+          }
+        }
+
+        <!-- Línea de base suave — COMPACTA -->
+        @if (variante === 'compacta') {
+          <line x1="50" [attr.y1]="alto - 30" x2="550" [attr.y2]="alto - 30"
+                stroke="currentColor" stroke-width="0.8" opacity="0.1"
+                style="color:var(--color-text)" />
+        }
+
+        <!-- Área rellena — solo CLASICA -->
+        @if (variante === 'clasica') {
+          @for (s of series; track s.nombre) {
+            <path [attr.d]="area(s)" [attr.fill]="s.color" fill-opacity="0.08" />
+          }
+        }
+
+        <!-- Líneas — todas las variantes -->
+        @for (s of series; track s.nombre) {
+          <polyline
+            [attr.points]="polyline(s)"
+            fill="none"
+            [attr.stroke]="s.color"
+            [attr.stroke-width]="variante === 'minima' ? 1.5 : 2"
+            stroke-linecap="round"
+            stroke-linejoin="round" />
+        }
+
+        <!-- Puntos visibles — CLASICA y COMPACTA -->
+        @if (variante !== 'minima') {
+          @for (s of series; track s.nombre) {
+            @for (p of s.puntos; track $index; let i = $index) {
+              <circle
+                [attr.cx]="pX(i)"
+                [attr.cy]="pY(p.valor)"
+                r="3"
+                [attr.fill]="s.color"
+                style="pointer-events:none" />
+            }
+          }
+        }
+
+        <!-- Hover circles invisibles — todas las variantes -->
+        @for (lbl of labels; track lbl.label; let i = $index) {
+          <circle
+            [attr.cx]="lbl.x"
+            [attr.cy]="firstSeriesY(i)"
+            r="14"
+            fill="transparent"
+            style="cursor:pointer"
+            (mouseenter)="onPuntoHover(i, lbl.label)" />
+        }
+
+        <!-- Labels eje X — CLASICA y COMPACTA -->
+        @if (variante !== 'minima') {
+          @for (lbl of labels; track lbl.label) {
+            <text
+              [attr.x]="lbl.x"
+              [attr.y]="alto - 8"
+              text-anchor="middle"
+              font-size="9"
+              fill="currentColor"
+              opacity="0.45"
+              style="color:var(--color-text)">
+              {{ lbl.label }}
+            </text>
+          }
+        }
+
+      </svg>
+    </div>
+
+    <!-- Leyenda chips — solo COMPACTA (abajo del SVG) -->
+    @if (variante === 'compacta') {
+      <div class="flex flex-wrap gap-2 justify-center flex-shrink-0">
+        @for (s of series; track s.nombre) {
+          <span class="flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                [style]="'background:'+s.color+'18; color:'+s.color">
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" [style.background]="s.color"></span>
+            {{ s.nombre }}
+          </span>
+        }
+      </div>
+    }
+  }
+
+  <app-chart-tooltip [state]="tooltip" [containerW]="containerW" />
+</div>

@@ -1,0 +1,596 @@
+<!-- ── Toast ──────────────────────────────────────────────────────────────── -->
+@if (toastMsg) {
+  <div class="fixed bottom-5 right-5 z-[999] flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm font-medium"
+    [style]="toastTipo === 'ok'
+      ? 'background:var(--color-primary); color:#fff'
+      : 'background:#ef4444; color:#fff'">
+    <i [class]="toastTipo === 'ok' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
+    {{ toastMsg }}
+  </div>
+}
+
+<!-- ── Layout principal ───────────────────────────────────────────────────── -->
+<div class="flex h-[calc(100vh-64px)] overflow-hidden" style="color:var(--color-text)">
+
+  <!-- ══ Panel izquierdo: lista de documentos ══════════════════════════════ -->
+  <aside class="w-72 flex-shrink-0 flex flex-col border-r"
+    style="background:var(--color-bg-sidebar); border-color:color-mix(in srgb,var(--color-text) 8%,transparent)">
+
+    <!-- Cabecera sidebar -->
+    <div class="px-4 pt-4 pb-3 border-b flex-shrink-0"
+      style="border-color:color-mix(in srgb,var(--color-text) 8%,transparent)">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-file-lines text-sm" style="color:var(--color-primary)"></i>
+          <span class="font-bold text-sm" style="color:var(--color-text)">Documentos</span>
+        </div>
+        <!-- Acciones -->
+        <div class="flex items-center gap-1">
+          <button (click)="abrirFileInput()" title="Importar .md"
+            class="w-7 h-7 flex items-center justify-center rounded-lg transition hover:opacity-70"
+            style="color:var(--color-primary); background:color-mix(in srgb,var(--color-primary) 10%,transparent)">
+            <i class="fa-solid fa-upload text-xs"></i>
+          </button>
+          <button (click)="abrirNuevo()" title="Nuevo documento"
+            class="w-7 h-7 flex items-center justify-center rounded-lg transition hover:opacity-80 text-white"
+            style="background:var(--color-primary)">
+            <i class="fa-solid fa-plus text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Búsqueda -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-xs"
+          style="color:var(--color-text); opacity:.35"></i>
+        <input [(ngModel)]="busqueda" placeholder="Buscar..."
+          class="w-full pl-7 pr-3 py-1.5 rounded-lg text-xs border outline-none"
+          style="background:var(--color-bg); border-color:color-mix(in srgb,var(--color-text) 12%,transparent); color:var(--color-text)" />
+      </div>
+
+      <!-- Filtro categoría -->
+      @if (categorias.length > 0) {
+        <select [(ngModel)]="categoriaFiltro"
+          class="mt-2 w-full px-2.5 py-1.5 rounded-lg text-xs border outline-none"
+          style="background:var(--color-bg); border-color:color-mix(in srgb,var(--color-text) 12%,transparent); color:var(--color-text)">
+          <option value="">Todas las categorías</option>
+          @for (cat of categorias; track cat) {
+            <option [value]="cat">{{ cat }}</option>
+          }
+        </select>
+      }
+    </div>
+
+    <!-- Lista -->
+    <div class="flex-1 overflow-y-auto py-2">
+      <input #fileInput type="file" accept=".md"                                          class="hidden" (change)="onFileSelected($event)" />
+      <input #imgInput  type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.svg,image/*"   class="hidden" (change)="onImagenSeleccionada($event)" />
+
+      @if (cargandoLista) {
+        @for (i of [1,2,3,4,5]; track i) {
+          <div class="mx-3 my-1 h-14 rounded-lg animate-pulse"
+            style="background:color-mix(in srgb,var(--color-text) 6%,transparent)"></div>
+        }
+      } @else if (docsFiltrados.length === 0) {
+        <div class="flex flex-col items-center justify-center py-10 px-4 text-center">
+          <i class="fa-regular fa-file text-3xl mb-2" style="color:var(--color-primary); opacity:.2"></i>
+          <p class="text-xs" style="color:var(--color-text); opacity:.4">
+            {{ documentos.length === 0 ? 'Aún no hay documentos' : 'Sin resultados' }}
+          </p>
+        </div>
+      } @else {
+        @for (doc of docsFiltrados; track doc.id) {
+          <button (click)="seleccionar(doc)"
+            class="w-full text-left px-3 py-2.5 mx-0 transition-all hover:opacity-100 relative"
+            [style]="docActivo?.id === doc.id
+              ? 'background:color-mix(in srgb,var(--color-primary) 10%,transparent)'
+              : 'background:transparent'">
+            @if (docActivo?.id === doc.id) {
+              <div class="absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full"
+                style="background:var(--color-primary)"></div>
+            }
+            <p class="text-xs font-semibold truncate leading-snug mb-0.5 pl-2"
+              [style]="docActivo?.id === doc.id ? 'color:var(--color-primary)' : 'color:var(--color-text)'">
+              {{ doc.titulo }}
+            </p>
+            <div class="flex items-center gap-2 pl-2">
+              @if (doc.categoria) {
+                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                  style="background:color-mix(in srgb,var(--color-primary) 10%,transparent); color:var(--color-primary)">
+                  {{ doc.categoria }}
+                </span>
+              }
+              <span class="text-[10px]" style="color:var(--color-text); opacity:.35">
+                {{ formatFecha(doc.fecha_actualizacion) }}
+              </span>
+            </div>
+          </button>
+        }
+      }
+    </div>
+  </aside>
+
+  <!-- ══ Panel derecho: editor / preview ════════════════════════════════════ -->
+  <main class="flex-1 flex flex-col overflow-hidden" style="background:var(--color-bg)">
+
+    @if (!docActivo) {
+      <!-- Estado vacío -->
+      <div class="flex-1 flex flex-col items-center justify-center gap-4">
+        <div class="w-20 h-20 rounded-3xl flex items-center justify-center"
+          style="background:color-mix(in srgb,var(--color-primary) 8%,transparent)">
+          <i class="fa-solid fa-file-lines text-3xl" style="color:var(--color-primary); opacity:.4"></i>
+        </div>
+        <div class="text-center">
+          <p class="font-semibold text-base mb-1" style="color:var(--color-text)">Selecciona un documento</p>
+          <p class="text-sm" style="color:var(--color-text); opacity:.4">
+            o crea uno nuevo con el botón <strong>+</strong>
+          </p>
+        </div>
+        <div class="flex gap-3 mt-2">
+          <button (click)="abrirNuevo()"
+            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
+            style="background:var(--color-primary)">
+            <i class="fa-solid fa-plus text-xs"></i> Nuevo documento
+          </button>
+          <button (click)="abrirFileInput()"
+            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition hover:opacity-80 border"
+            style="border-color:color-mix(in srgb,var(--color-primary) 20%,transparent); color:var(--color-primary)">
+            <i class="fa-solid fa-upload text-xs"></i> Importar .md
+          </button>
+        </div>
+      </div>
+
+    } @else {
+
+      <!-- Barra de herramientas -->
+      <div class="flex items-center justify-between gap-3 px-5 py-3 border-b flex-shrink-0"
+        style="background:var(--color-bg-sidebar); border-color:color-mix(in srgb,var(--color-text) 8%,transparent)">
+
+        <!-- Título editable -->
+        <div class="flex-1 min-w-0">
+          @if (vista === 'preview') {
+            <h2 class="font-bold text-base truncate" style="color:var(--color-text)">
+              {{ docActivo.titulo }}
+            </h2>
+            @if (docActivo.categoria) {
+              <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                style="background:color-mix(in srgb,var(--color-primary) 10%,transparent); color:var(--color-primary)">
+                {{ docActivo.categoria }}
+              </span>
+            }
+          } @else {
+            <input [(ngModel)]="editTitulo" (ngModelChange)="onEditorChange()"
+              class="w-full bg-transparent font-bold text-base outline-none border-b border-dashed pb-0.5"
+              style="color:var(--color-text); border-color:color-mix(in srgb,var(--color-primary) 30%,transparent)"
+              placeholder="Título del documento" />
+          }
+        </div>
+
+        <!-- Controles vista -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <!-- Toggle vista -->
+          <div class="flex gap-0.5 p-1 rounded-xl"
+            style="background:color-mix(in srgb,var(--color-text) 6%,transparent)">
+            <button (click)="setVista('preview')" title="Vista previa"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+              [style]="vista === 'preview'
+                ? 'background:var(--color-bg); color:var(--color-primary); box-shadow:0 1px 3px rgba(0,0,0,.1)'
+                : 'color:var(--color-text); opacity:.5'">
+              <i class="fa-solid fa-eye text-[10px]"></i>Vista
+            </button>
+            <button (click)="setVista('editor')" title="Editar"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+              [style]="vista === 'editor'
+                ? 'background:var(--color-bg); color:var(--color-primary); box-shadow:0 1px 3px rgba(0,0,0,.1)'
+                : 'color:var(--color-text); opacity:.5'">
+              <i class="fa-solid fa-pen text-[10px]"></i>Editar
+            </button>
+            <button (click)="setVista('split')" title="Split"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+              [style]="vista === 'split'
+                ? 'background:var(--color-bg); color:var(--color-primary); box-shadow:0 1px 3px rgba(0,0,0,.1)'
+                : 'color:var(--color-text); opacity:.5'">
+              <i class="fa-solid fa-table-columns text-[10px]"></i>Split
+            </button>
+          </div>
+
+          <!-- Guardar -->
+          @if (vista !== 'preview') {
+            <button (click)="guardar()" [disabled]="guardando || !hayPendientes"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition disabled:opacity-40"
+              style="background:var(--color-primary)">
+              <i [class]="guardando ? 'fa-solid fa-spinner fa-spin text-[10px]' : 'fa-solid fa-floppy-disk text-[10px]'"></i>
+              {{ guardando ? 'Guardando…' : (hayPendientes ? 'Guardar' : 'Guardado') }}
+            </button>
+          }
+
+          <!-- Permisos / Compartir -->
+          <button (click)="abrirPermisos()" title="Permisos del documento"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition hover:opacity-80"
+            style="color:var(--color-primary); background:color-mix(in srgb,var(--color-primary) 10%,transparent)">
+            <i class="fa-solid fa-user-lock text-[10px]"></i>Permisos
+          </button>
+
+          <!-- Descargar PDF -->
+          <button (click)="descargarPDF()" [disabled]="generandoPDF" title="Descargar PDF"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition hover:opacity-80 disabled:opacity-50"
+            style="color:#dc2626; background:color-mix(in srgb,#dc2626 10%,transparent)">
+            <i [class]="generandoPDF ? 'fa-solid fa-spinner fa-spin text-[10px]' : 'fa-solid fa-file-pdf text-[10px]'"></i>
+            {{ generandoPDF ? 'Generando…' : 'PDF' }}
+          </button>
+
+          <!-- Eliminar -->
+          <button (click)="modalEliminar = true" title="Eliminar documento"
+            class="w-7 h-7 flex items-center justify-center rounded-lg transition hover:opacity-80"
+            style="color:#ef4444; background:color-mix(in srgb,#ef4444 10%,transparent)">
+            <i class="fa-solid fa-trash text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Área de contenido -->
+      <div class="flex-1 overflow-hidden flex">
+
+        <!-- MODO PREVIEW -->
+        @if (vista === 'preview') {
+          <div class="flex-1 overflow-y-auto px-8 py-8 max-w-4xl mx-auto w-full">
+            <markdown [data]="docActivo.contenido" class="doc-markdown"></markdown>
+          </div>
+        }
+
+        <!-- MODO EDITOR -->
+        @if (vista === 'editor') {
+          <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Mini toolbar markdown -->
+            <div class="flex items-center gap-1 px-4 py-2 border-b flex-shrink-0"
+              style="background:var(--color-bg-sidebar); border-color:color-mix(in srgb,var(--color-text) 6%,transparent)">
+              @for (btn of markdownBtns; track btn.label) {
+                <button (click)="insertarMd(btn.wrap[0], btn.wrap[1])" [title]="btn.label"
+                  class="px-2 py-1 rounded text-xs font-mono font-semibold transition hover:opacity-80"
+                  style="color:var(--color-text); background:color-mix(in srgb,var(--color-text) 8%,transparent)">
+                  {{ btn.label }}
+                </button>
+              }
+              <!-- Separador -->
+              <div class="w-px h-4 mx-1" style="background:color-mix(in srgb,var(--color-text) 12%,transparent)"></div>
+              <!-- Insertar imagen -->
+              <button (click)="abrirSelectorImagen()" [disabled]="subiendoImagen" title="Insertar imagen"
+                class="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold transition hover:opacity-80 disabled:opacity-40"
+                style="color:var(--color-primary); background:color-mix(in srgb,var(--color-primary) 10%,transparent)">
+                @if (subiendoImagen) {
+                  <i class="fa-solid fa-spinner fa-spin text-xs"></i>Subiendo…
+                } @else {
+                  <i class="fa-solid fa-image text-xs"></i>Imagen
+                }
+              </button>
+
+              <!-- Categoría -->
+              <div class="ml-auto flex items-center gap-1.5">
+                <span class="text-[10px]" style="color:var(--color-text); opacity:.4">Categoría:</span>
+                <input [(ngModel)]="editCategoria" (ngModelChange)="onEditorChange()"
+                  placeholder="Opcional"
+                  class="bg-transparent border rounded px-2 py-0.5 text-xs outline-none w-28"
+                  style="border-color:color-mix(in srgb,var(--color-text) 15%,transparent); color:var(--color-text)" />
+              </div>
+            </div>
+            <textarea #editor [(ngModel)]="editContenido" (ngModelChange)="onEditorChange()"
+              class="flex-1 resize-none outline-none p-6 font-mono text-sm leading-relaxed"
+              style="background:var(--color-bg); color:var(--color-text); tab-size:2"
+              placeholder="Escribe en Markdown..."></textarea>
+          </div>
+        }
+
+        <!-- MODO SPLIT -->
+        @if (vista === 'split') {
+          <div class="flex-1 flex overflow-hidden">
+            <!-- Editor -->
+            <div class="flex-1 flex flex-col border-r overflow-hidden"
+              style="border-color:color-mix(in srgb,var(--color-text) 8%,transparent)">
+              <div class="px-3 py-1.5 border-b flex-shrink-0 flex items-center gap-2"
+                style="background:var(--color-bg-sidebar); border-color:color-mix(in srgb,var(--color-text) 6%,transparent)">
+                <i class="fa-solid fa-pen text-[10px]" style="color:var(--color-primary)"></i>
+                <span class="text-[10px] font-semibold uppercase tracking-wide" style="color:var(--color-text); opacity:.5">Editor</span>
+                <button (click)="abrirSelectorImagen()" [disabled]="subiendoImagen" title="Insertar imagen"
+                  class="ml-auto flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition hover:opacity-80 disabled:opacity-40"
+                  style="color:var(--color-primary); background:color-mix(in srgb,var(--color-primary) 10%,transparent)">
+                  <i [class]="subiendoImagen ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-image'"></i>
+                  {{ subiendoImagen ? 'Subiendo…' : 'Imagen' }}
+                </button>
+              </div>
+              <textarea [(ngModel)]="editContenido" (ngModelChange)="onEditorChange()"
+                class="flex-1 resize-none outline-none p-5 font-mono text-sm leading-relaxed"
+                style="background:var(--color-bg); color:var(--color-text); tab-size:2"
+                placeholder="Escribe en Markdown..."></textarea>
+            </div>
+            <!-- Preview -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+              <div class="px-3 py-1.5 border-b flex-shrink-0 flex items-center gap-2"
+                style="background:var(--color-bg-sidebar); border-color:color-mix(in srgb,var(--color-text) 6%,transparent)">
+                <i class="fa-solid fa-eye text-[10px]" style="color:var(--color-primary)"></i>
+                <span class="text-[10px] font-semibold uppercase tracking-wide" style="color:var(--color-text); opacity:.5">Preview</span>
+              </div>
+              <div class="flex-1 overflow-y-auto px-8 py-6">
+                <markdown [data]="editContenido" class="doc-markdown"></markdown>
+              </div>
+            </div>
+          </div>
+        }
+
+      </div>
+    }
+  </main>
+</div>
+
+<!-- ══ Modal: Nuevo documento ════════════════════════════════════════════════ -->
+@if (modalNuevo) {
+  <div class="fixed inset-0 z-[500] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    (click)="modalNuevo = false">
+    <div class="rounded-2xl shadow-2xl w-full max-w-md p-6"
+      style="background:var(--color-bg-sidebar)"
+      (click)="$event.stopPropagation()">
+      <h3 class="font-bold text-base mb-4" style="color:var(--color-text)">Nuevo documento</h3>
+
+      <label class="block mb-1 text-xs font-semibold" style="color:var(--color-text); opacity:.6">Título *</label>
+      <input [(ngModel)]="nuevoTitulo" placeholder="Nombre del documento"
+        class="w-full px-3 py-2 rounded-xl border text-sm outline-none mb-3"
+        style="background:var(--color-bg); border-color:color-mix(in srgb,var(--color-text) 15%,transparent); color:var(--color-text)"
+        (keydown.enter)="confirmarNuevo()" />
+
+      <label class="block mb-1 text-xs font-semibold" style="color:var(--color-text); opacity:.6">Categoría</label>
+      <input [(ngModel)]="nuevoCategoria" placeholder="Ej: Procedimientos, Políticas…"
+        class="w-full px-3 py-2 rounded-xl border text-sm outline-none mb-5"
+        style="background:var(--color-bg); border-color:color-mix(in srgb,var(--color-text) 15%,transparent); color:var(--color-text)" />
+
+      <div class="flex justify-end gap-2">
+        <button (click)="modalNuevo = false"
+          class="px-4 py-2 rounded-xl border text-sm transition"
+          style="border-color:color-mix(in srgb,var(--color-text) 15%,transparent); color:var(--color-text)">
+          Cancelar
+        </button>
+        <button (click)="confirmarNuevo()" [disabled]="!nuevoTitulo.trim() || creando"
+          class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition disabled:opacity-40"
+          style="background:var(--color-primary)">
+          <i [class]="creando ? 'fa-solid fa-spinner fa-spin mr-1' : 'fa-solid fa-plus mr-1'"></i>
+          Crear
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══ Modal: Confirmar eliminar ══════════════════════════════════════════════ -->
+@if (modalEliminar && docActivo) {
+  <div class="fixed inset-0 z-[500] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    (click)="modalEliminar = false">
+    <div class="rounded-2xl shadow-2xl w-full max-w-sm p-6"
+      style="background:var(--color-bg-sidebar)"
+      (click)="$event.stopPropagation()">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style="background:color-mix(in srgb,#ef4444 12%,transparent)">
+          <i class="fa-solid fa-trash text-sm" style="color:#ef4444"></i>
+        </div>
+        <div>
+          <p class="font-bold text-sm" style="color:var(--color-text)">Eliminar documento</p>
+          <p class="text-xs" style="color:var(--color-text); opacity:.5">Esta acción no se puede deshacer</p>
+        </div>
+      </div>
+      <p class="text-sm mb-5 px-1" style="color:var(--color-text); opacity:.7">
+        ¿Eliminar <strong>{{ docActivo.titulo }}</strong>?
+      </p>
+      <div class="flex justify-end gap-2">
+        <button (click)="modalEliminar = false"
+          class="px-4 py-2 rounded-xl border text-sm transition"
+          style="border-color:color-mix(in srgb,var(--color-text) 15%,transparent); color:var(--color-text)">
+          Cancelar
+        </button>
+        <button (click)="confirmarEliminar()"
+          class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
+          style="background:#ef4444">
+          <i class="fa-solid fa-trash mr-1"></i> Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══ Modal: Permisos del documento ═══════════════════════════════════════════ -->
+@if (modalPermisos && docActivo) {
+  <div class="fixed inset-0 z-[500] flex items-center justify-center p-4"
+       style="background:rgba(0,0,0,0.65);backdrop-filter:blur(8px)"
+       (click)="cerrarPermisos()">
+    <div class="relative w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+         style="background:var(--color-bg-sidebar);max-height:88vh"
+         (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="relative px-6 pt-5 pb-5 flex-shrink-0" style="background:var(--color-primary)">
+        <button (click)="cerrarPermisos()"
+                class="absolute top-4 right-4 w-8 h-8 rounded-xl flex items-center justify-center transition"
+                style="background:rgba(255,255,255,0.2);color:#fff">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+        <div class="flex items-center gap-3 pr-10">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(255,255,255,0.2)">
+            <i class="fa-solid fa-user-lock text-white"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-[10px] font-bold uppercase tracking-widest" style="color:rgba(255,255,255,0.65)">Permisos</p>
+            <h2 class="text-lg font-black truncate" style="color:#fff">{{ docActivo.titulo }}</h2>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cuerpo -->
+      <div class="flex-1 overflow-y-auto px-6 py-5"
+           style="scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--color-primary) 25%,transparent) transparent">
+
+        @if (cargandoPermisos) {
+          <div class="flex items-center justify-center gap-2 py-10">
+            <i class="fa-solid fa-circle-notch fa-spin" style="color:var(--color-primary)"></i>
+            <span class="text-sm" style="color:var(--color-text);opacity:.5">Cargando permisos...</span>
+          </div>
+        } @else {
+
+          <!-- Toggle Público -->
+          <label class="flex items-center gap-3 p-3 rounded-xl mb-5 cursor-pointer"
+                 style="background:color-mix(in srgb,var(--color-primary) 6%,transparent)">
+            <input type="checkbox" [(ngModel)]="docPublico" class="w-4 h-4 accent-[var(--color-primary)]" />
+            <div class="flex-1">
+              <p class="text-sm font-semibold" style="color:var(--color-text)">Documento público</p>
+              <p class="text-xs" style="color:var(--color-text);opacity:.55">
+                Cualquier usuario logueado podrá verlo. Si lo desmarcas, solo lo verán las personas que agregues abajo.
+              </p>
+            </div>
+            <i class="fa-solid" [class.fa-globe]="docPublico" [class.fa-lock]="!docPublico" style="color:var(--color-primary)"></i>
+          </label>
+
+          @if (!docPublico) {
+
+            <!-- ── Agregar en bloque: empresa → centro de costo ── -->
+            <p class="text-[10px] font-black uppercase tracking-widest mb-2" style="color:var(--color-primary);opacity:.65">
+              Agregar por centro de costo
+            </p>
+            <div class="flex flex-wrap gap-2 mb-3">
+              <select [(ngModel)]="empresaCentroSel" (ngModelChange)="onEmpresaCentroChange()"
+                      class="flex-1 min-w-[140px] px-3 py-2 rounded-lg text-sm outline-none"
+                      style="background:var(--color-bg);border:1px solid color-mix(in srgb,var(--color-text) 15%,transparent);color:var(--color-text)">
+                <option value="">Empresa...</option>
+                @for (emp of empresasDisponibles; track emp.nit) {
+                  <option [value]="emp.nit">{{ emp.nombre }}</option>
+                }
+              </select>
+
+              <select [(ngModel)]="centroCostoSel" (ngModelChange)="onCentroCostoChange()" [disabled]="!empresaCentroSel"
+                      class="flex-1 min-w-[140px] px-3 py-2 rounded-lg text-sm outline-none disabled:opacity-50"
+                      style="background:var(--color-bg);border:1px solid color-mix(in srgb,var(--color-text) 15%,transparent);color:var(--color-text)">
+                <option value="">
+                  {{ cargandoCentros[empresaCentroSel] ? 'Cargando...' : 'Centro de costo...' }}
+                </option>
+                @for (c of (centrosCostoPorEmpresa[empresaCentroSel] ?? []); track c.id) {
+                  <option [value]="c.id">{{ c.nombre }}</option>
+                }
+              </select>
+
+              <select [(ngModel)]="tipoBulkSel" class="w-32 px-3 py-2 rounded-lg text-sm outline-none"
+                      style="background:var(--color-bg);border:1px solid color-mix(in srgb,var(--color-text) 15%,transparent);color:var(--color-text)">
+                @for (t of tiposPermiso; track t.id_tipo) {
+                  <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
+                }
+              </select>
+            </div>
+
+            @if (cargandoColaboradoresPreview) {
+              <div class="flex items-center gap-2 text-xs mb-4" style="color:var(--color-text);opacity:.5">
+                <i class="fa-solid fa-spinner fa-spin"></i> Cargando colaboradores...
+              </div>
+            } @else if (colaboradoresPreview.length > 0) {
+              <div class="rounded-xl overflow-hidden mb-2" style="border:1px solid color-mix(in srgb,var(--color-primary) 15%,transparent);max-height:200px;overflow-y:auto">
+                @for (c of colaboradoresPreview; track c.codigo) {
+                  <label class="flex items-center gap-2.5 px-3 py-2 text-xs cursor-pointer transition"
+                         style="border-bottom:1px solid color-mix(in srgb,var(--color-primary) 8%,transparent)"
+                         [style.opacity]="previewMarcado(c.codigo) ? '1' : '0.45'">
+                    <input type="checkbox" [checked]="previewMarcado(c.codigo)" (change)="togglePreview(c.codigo)"
+                           class="accent-[var(--color-primary)]" />
+                    <span class="flex-1 truncate font-medium" style="color:var(--color-text)">{{ c.nombre }}</span>
+                    <span class="text-[10px]" style="color:var(--color-text);opacity:.4">{{ c.cargo }}</span>
+                  </label>
+                }
+              </div>
+              <button type="button" (click)="agregarSeleccionDelCentro()"
+                      class="w-full mb-5 px-3 py-2 rounded-lg text-xs font-semibold transition hover:opacity-80"
+                      style="background:var(--color-primary);color:#fff">
+                <i class="fa-solid fa-user-plus mr-1.5"></i>Agregar seleccionados como "{{ nombreTipo(tipoBulkSel) }}"
+              </button>
+            } @else {
+              <p class="text-xs italic mb-5" style="color:var(--color-text);opacity:.4">
+                Selecciona empresa y centro de costo para ver y agregar a sus colaboradores.
+              </p>
+            }
+
+            <!-- ── Búsqueda directa de una persona puntual ── -->
+            <p class="text-[10px] font-black uppercase tracking-widest mb-2" style="color:var(--color-primary);opacity:.65">
+              O agregar una persona puntual
+            </p>
+            <div class="relative mb-3">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs opacity-40"></i>
+              <input type="text" [ngModel]="buscarUsuarioTexto" (ngModelChange)="onBuscarUsuario($event)"
+                     placeholder="Buscar por nombre, cédula o código..."
+                     class="w-full pl-9 pr-3 py-2 rounded-lg text-sm outline-none"
+                     style="background:var(--color-bg);border:1px solid color-mix(in srgb,var(--color-text) 15%,transparent);color:var(--color-text)" />
+            </div>
+
+            @if (buscandoUsuario) {
+              <div class="flex items-center gap-2 text-xs mb-4" style="color:var(--color-text);opacity:.5">
+                <i class="fa-solid fa-spinner fa-spin"></i> Buscando...
+              </div>
+            } @else if (usuariosSugeridos.length > 0) {
+              <div class="rounded-xl overflow-hidden mb-5" style="border:1px solid color-mix(in srgb,var(--color-primary) 15%,transparent)">
+                @for (c of usuariosSugeridos; track c.codigo) {
+                  <button type="button" (click)="agregarUsuarioBuscado(c)" [disabled]="yaSeleccionadaPersona(c.codigo)"
+                          class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left transition hover:opacity-80 disabled:opacity-40"
+                          style="border-bottom:1px solid color-mix(in srgb,var(--color-primary) 8%,transparent);color:var(--color-text)">
+                    <i class="fa-solid fa-user text-[10px]" style="color:var(--color-primary)"></i>
+                    <span class="flex-1 truncate font-medium">{{ c.nombre }}</span>
+                    <span class="text-[10px] opacity-40">{{ c.empresa }}</span>
+                  </button>
+                }
+              </div>
+            }
+
+            <!-- ── Lista final de personas con acceso ── -->
+            <p class="text-[10px] font-black uppercase tracking-widest mb-2" style="color:var(--color-primary);opacity:.65">
+              Con acceso ({{ personas.length }})
+            </p>
+            @if (personas.length === 0) {
+              <p class="text-xs italic" style="color:var(--color-text);opacity:.4">Nadie tiene acceso todavía — agrega personas arriba.</p>
+            } @else {
+              <div class="rounded-xl overflow-hidden" style="border:1px solid color-mix(in srgb,var(--color-primary) 15%,transparent)">
+                @for (p of personas; track p.codigo_colab) {
+                  <div class="flex items-center gap-2.5 px-3 py-2 text-xs"
+                       style="border-bottom:1px solid color-mix(in srgb,var(--color-primary) 8%,transparent)">
+                    <span class="flex-1 truncate font-medium" style="color:var(--color-text)">{{ p.nombre ?? p.codigo_colab }}</span>
+                    <select [(ngModel)]="p.tipo"
+                            class="px-2 py-1 rounded-md text-[11px] outline-none"
+                            style="background:var(--color-bg);border:1px solid color-mix(in srgb,var(--color-text) 15%,transparent);color:var(--color-text)">
+                      @for (t of tiposPermiso; track t.id_tipo) {
+                        <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
+                      }
+                    </select>
+                    <button type="button" (click)="quitarPersona(p.codigo_colab)"
+                            class="w-6 h-6 rounded-md flex items-center justify-center transition hover:opacity-70"
+                            style="color:#ef4444">
+                      <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+
+          }
+
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="flex-shrink-0 px-6 py-3 flex justify-end gap-2"
+           style="border-top:1px solid color-mix(in srgb,var(--color-primary) 15%,transparent)">
+        <button (click)="cerrarPermisos()"
+                class="px-4 py-2 rounded-xl text-sm font-semibold transition"
+                style="background:color-mix(in srgb,var(--color-text) 10%,transparent);color:var(--color-text)">
+          Cancelar
+        </button>
+        <button (click)="guardarPermisos()" [disabled]="guardandoPermisos"
+                class="px-4 py-2 rounded-xl text-sm font-semibold transition disabled:opacity-60"
+                style="background:var(--color-primary);color:#fff">
+          @if (guardandoPermisos) {
+            <i class="fa-solid fa-spinner fa-spin mr-1.5"></i>Guardando...
+          } @else {
+            <i class="fa-solid fa-floppy-disk mr-1.5"></i>Guardar permisos
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

@@ -1,0 +1,104 @@
+<div class="rounded-2xl p-4 flex flex-col gap-3 h-full relative"
+     style="background:var(--color-bg-sidebar);border:1px solid color-mix(in srgb,var(--color-primary) 10%,transparent)"
+     (mousemove)="onMove($event)" (mouseleave)="onLeave()">
+
+  <!-- Header -->
+  <div class="flex items-center gap-2 flex-shrink-0">
+    <i [class]="icono + ' text-sm'" style="color:var(--color-primary)"></i>
+    <span class="text-sm font-semibold" style="color:var(--color-text)">{{ titulo }}</span>
+  </div>
+
+  <!-- ── SKELETON ─────────────────────────────────────────────────────────── -->
+  @if (cargando) {
+    <div class="flex-1 min-h-0 flex flex-col gap-1.5">
+      @for (r of skeletons; track $index) {
+        <div class="flex gap-1.5 flex-1 min-h-0">
+          <div class="w-14 h-full rounded animate-pulse"
+               style="background:color-mix(in srgb,var(--color-text) 7%,transparent)"></div>
+          @for (c of skeletonCols; track $index) {
+            <div class="flex-1 h-full rounded animate-pulse"
+                 [style.animation-delay]="($index*60)+'ms'"
+                 style="background:color-mix(in srgb,var(--color-primary) 8%,transparent)"></div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── SIN DATOS ────────────────────────────────────────────────────────── -->
+  @else if (filas.length === 0 || columnas.length === 0) {
+    <div class="flex-1 flex items-center justify-center text-xs opacity-40" style="color:var(--color-text)">
+      <div class="text-center">
+        <i class="fa-solid fa-border-all block text-2xl mb-1"></i>
+        Sin datos
+      </div>
+    </div>
+  }
+
+  <!-- ── GRID ─────────────────────────────────────────────────────────────── -->
+  @else {
+    <div class="flex-1 min-h-0 overflow-auto"
+         style="scrollbar-width:thin;
+                scrollbar-color:color-mix(in srgb,var(--color-primary) 20%,transparent) transparent">
+
+      <div class="grid gap-1 min-w-max"
+           [style.grid-template-columns]="gridCols">
+
+        <!-- Corner vacío -->
+        <div class="w-16"></div>
+
+        <!-- Cabecera columnas -->
+        @for (col of columnas; track col) {
+          <div class="text-center text-[10px] font-semibold pb-1 px-1"
+               style="color:color-mix(in srgb,var(--color-text) 55%,transparent)">
+            {{ col }}
+          </div>
+        }
+
+        <!-- Filas de datos -->
+        @for (fila of filas; track fila; let r = $index) {
+          <!-- Label fila -->
+          <div class="w-16 pr-2 flex items-center justify-end text-[10px] font-medium leading-tight"
+               style="color:color-mix(in srgb,var(--color-text) 60%,transparent)">
+            {{ fila }}
+          </div>
+
+          <!-- Celdas -->
+          @for (col of columnas; track col; let c = $index) {
+            <div class="relative rounded flex items-center justify-center cursor-pointer
+                        transition-transform hover:scale-110 hover:z-10"
+                 style="aspect-ratio:1; min-height:20px; min-width:20px"
+                 [style.background]="color"
+                 [style.opacity]="cellOpacity(r, c)"
+                 (mouseenter)="onCellHover($event, r, c)"
+                 (mouseleave)="tooltip.visible=false">
+              @if (mostrarValor && cellValue(r, c) > 0) {
+                <span class="text-[8px] font-bold text-white" style="pointer-events:none">
+                  {{ cellValue(r, c) }}
+                </span>
+              }
+            </div>
+          }
+        }
+
+      </div>
+
+      <!-- Leyenda de escala -->
+      <div class="flex items-center gap-2 mt-3">
+        <span class="text-[9px]"
+              style="color:color-mix(in srgb,var(--color-text) 40%,transparent)">Bajo</span>
+        <div class="flex-1 h-2 rounded-full overflow-hidden">
+          <div class="w-full h-full rounded-full"
+               style="background:linear-gradient(to right,
+                 color-mix(in srgb,var(--color-primary) 8%,transparent),
+                 var(--color-primary))"></div>
+        </div>
+        <span class="text-[9px]"
+              style="color:color-mix(in srgb,var(--color-text) 40%,transparent)">Alto</span>
+      </div>
+
+    </div>
+  }
+
+  <app-chart-tooltip [state]="tooltip" [containerW]="0" />
+</div>

@@ -1,0 +1,113 @@
+<div class="rounded-2xl p-4 flex flex-col gap-1 h-full relative"
+     style="background:var(--color-bg-sidebar);
+            border:1px solid color-mix(in srgb,var(--color-primary) 10%,transparent)"
+     (mousemove)="onSvgMove($event)" (mouseleave)="onLeave()">
+
+  @if (titulo) {
+    <div class="flex items-center gap-1.5 mb-1">
+      <i class="fa-solid fa-gauge-high text-xs" style="color:var(--color-primary)"></i>
+      <span class="text-sm font-semibold" style="color:var(--color-text)">{{ titulo }}</span>
+    </div>
+  }
+
+  @if (cargando) {
+    <div class="flex-1 min-h-0 rounded-xl animate-pulse"
+         style="background:color-mix(in srgb,var(--color-primary) 10%,transparent)"></div>
+  } @else {
+    <div class="flex-1 min-h-0 flex items-center justify-center">
+    <svg viewBox="14 10 172 130" xmlns="http://www.w3.org/2000/svg"
+         preserveAspectRatio="xMidYMid meet"
+         class="w-full h-full max-w-[280px] mx-auto select-none"
+         (mouseenter)="onSvgEnter()">
+
+      <!-- Gradient para el texto del porcentaje -->
+      <defs>
+        <linearGradient [attr.id]="'gaugePctGrad-' + titulo" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" [attr.stop-color]="colorArc" stop-opacity="1"/>
+          <stop offset="100%" [attr.stop-color]="colorArc" stop-opacity="0.55"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Zonas de color (fondo tenue) -->
+      <path [attr.d]="zoneArc(0, 0.5)"
+            fill="none" stroke="#22c55e" [attr.stroke-width]="STROKE"
+            stroke-linecap="butt" opacity="0.15"/>
+      <path [attr.d]="zoneArc(0.5, 0.75)"
+            fill="none" stroke="#f59e0b" [attr.stroke-width]="STROKE"
+            stroke-linecap="butt" opacity="0.15"/>
+      <path [attr.d]="zoneArc(0.75, 1)"
+            fill="none" stroke="#ef4444" [attr.stroke-width]="STROKE"
+            stroke-linecap="butt" opacity="0.15"/>
+
+      <!-- Arco de progreso -->
+      <path [attr.d]="arcD"
+            fill="none"
+            [attr.stroke]="colorArc"
+            [attr.stroke-width]="STROKE"
+            stroke-linecap="round"
+            [attr.stroke-dasharray]="dashFilled"
+            stroke-dashoffset="0"
+            style="transition: stroke-dasharray .6s cubic-bezier(.4,0,.2,1), stroke .35s ease"/>
+
+      <!-- Ticks + etiquetas -->
+      @for (t of ticks; track $index) {
+        <line [attr.x1]="t.x1" [attr.y1]="t.y1"
+              [attr.x2]="t.x2" [attr.y2]="t.y2"
+              stroke="color-mix(in srgb,var(--color-text) 25%,transparent)"
+              stroke-width="1.5" stroke-linecap="round"/>
+        @if (t.label) {
+          <text [attr.x]="t.x2 + (t.x2 < CX ? -4 : t.x2 > CX ? 4 : 0)"
+                [attr.y]="t.y2 + (t.y2 < CY ? -3 : 5)"
+                text-anchor="middle" font-size="7" font-weight="600"
+                style="fill:color-mix(in srgb,var(--color-text) 40%,transparent)">
+            {{ t.label }}
+          </text>
+        }
+      }
+
+      <!-- Aguja (sombra + cuerpo) -->
+      <line [attr.x1]="CX" [attr.y1]="CY"
+            [attr.x2]="needleX" [attr.y2]="needleY"
+            stroke="rgba(0,0,0,.1)" stroke-width="4" stroke-linecap="round"
+            style="transition: x2 .6s cubic-bezier(.4,0,.2,1), y2 .6s cubic-bezier(.4,0,.2,1)"/>
+      <line [attr.x1]="CX" [attr.y1]="CY"
+            [attr.x2]="needleX" [attr.y2]="needleY"
+            [attr.stroke]="colorArc" stroke-width="2" stroke-linecap="round"
+            style="transition: x2 .6s cubic-bezier(.4,0,.2,1), y2 .6s cubic-bezier(.4,0,.2,1), stroke .35s ease"/>
+
+      <!-- Pivote -->
+      <circle [attr.cx]="CX" [attr.cy]="CY" r="5"
+              style="fill:var(--color-bg-sidebar)"
+              [attr.stroke]="colorArc" stroke-width="2"/>
+      <circle [attr.cx]="CX" [attr.cy]="CY" r="2"
+              [attr.fill]="colorArc"/>
+
+      <!-- ═══ Texto debajo del arco ═══ -->
+
+      <!-- Porcentaje grande (degradado) -->
+      <text [attr.x]="CX" [attr.y]="CY + 22"
+            text-anchor="middle" font-size="24" font-weight="900"
+            [attr.fill]="'url(#gaugePctGrad-' + titulo + ')'"
+            style="transition: fill .35s ease">
+        {{ porcentajeTexto }}
+      </text>
+
+      <!-- Valor / Máximo (más tenue) -->
+      <text [attr.x]="CX" [attr.y]="CY + 34"
+            text-anchor="middle" font-size="8.5"
+            style="fill:color-mix(in srgb,var(--color-text) 40%,transparent)">
+        {{ valor | number }} de {{ maximo | number }}{{ unidad ? ' ' + unidad : '' }}
+      </text>
+
+    </svg>
+    </div>
+
+    @if (subtitulo) {
+      <p class="text-xs text-center" style="color:var(--color-text); opacity:.45">
+        {{ subtitulo }}
+      </p>
+    }
+  }
+
+  <app-chart-tooltip [state]="tooltip" [containerW]="containerW" />
+</div>

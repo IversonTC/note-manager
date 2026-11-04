@@ -1,0 +1,201 @@
+<div class="rounded-2xl p-4 flex flex-col gap-2 h-full relative"
+     style="background:var(--color-bg-sidebar);border:1px solid color-mix(in srgb,var(--color-primary) 10%,transparent)"
+     (mousemove)="onSvgMove($event)" (mouseleave)="onLeave()">
+
+  <!-- Header -->
+  <div class="flex items-center gap-2 flex-shrink-0">
+    <i [class]="icono + ' text-sm'" style="color:var(--color-primary)"></i>
+    <span class="text-sm font-semibold" style="color:var(--color-text)">{{ titulo }}</span>
+  </div>
+
+  <!-- Breadcrumb (solo modo jerárquico + variante clasica) -->
+  @if (modoJerarquico && breadcrumb.length > 1 && variante === 'clasica') {
+    <div class="flex items-center gap-1 flex-wrap flex-shrink-0">
+      @for (crumb of breadcrumb; track crumb.idx; let last = $last) {
+        @if (!last) {
+          <button class="text-xs px-2 py-0.5 rounded-full transition-colors"
+                  style="color:var(--color-primary);
+                         background:color-mix(in srgb,var(--color-primary) 10%,transparent)"
+                  (click)="irNivel(crumb.idx + 1)">
+            {{ crumb.label }}
+          </button>
+          <i class="fa-solid fa-chevron-right text-[9px]"
+             style="color:color-mix(in srgb,var(--color-text) 30%,transparent)"></i>
+        } @else {
+          <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                style="color:var(--color-text);
+                       background:color-mix(in srgb,var(--color-text) 10%,transparent)">
+            {{ crumb.label }}
+          </span>
+        }
+      }
+    </div>
+  }
+
+  <!-- ── SKELETON ──────────────────────────────────────────────────────────── -->
+  @if (cargando) {
+    <div class="flex-1 min-h-0 flex items-end gap-2 px-2 pb-1">
+      @for (s of skeletons; track s) {
+        <div class="flex-1 rounded-t-lg animate-pulse"
+             [style.height]="(25 + s * 12) + '%'"
+             style="background:color-mix(in srgb,var(--color-primary) 10%,transparent)"></div>
+      }
+    </div>
+
+  <!-- ── SIN DATOS ─────────────────────────────────────────────────────────── -->
+  } @else if (itemsMostrar.length === 0) {
+    <div class="flex-1 flex items-center justify-center text-xs opacity-40" style="color:var(--color-text)">
+      <div class="text-center">
+        <i class="fa-solid fa-chart-column block text-2xl mb-2"></i>
+        {{ msgVacio }}
+      </div>
+    </div>
+
+  <!-- ── DETALLE (hoja final, solo clasica) ──────────────────────────────── -->
+  } @else if (hoja && variante === 'clasica') {
+    <div class="flex-1 min-h-0 flex flex-col gap-2 overflow-y-auto">
+      <div class="flex items-center gap-2 mb-1">
+        <button class="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors"
+                style="color:var(--color-primary);
+                       background:color-mix(in srgb,var(--color-primary) 8%,transparent)"
+                (click)="hoja = null">
+          <i class="fa-solid fa-arrow-left text-[10px]"></i>
+          Volver
+        </button>
+        <span class="text-xs font-semibold" style="color:var(--color-text)">
+          {{ hoja.label }}
+          <span class="font-normal opacity-50 ml-1">— {{ hoja.valor }} registros</span>
+        </span>
+      </div>
+
+      @if (hoja.detalle?.length) {
+        @for (item of hoja.detalle; track item.label) {
+          <div class="flex items-start gap-2 px-3 py-2 rounded-xl text-xs"
+               style="background:color-mix(in srgb,var(--color-text) 4%,transparent)">
+            <span class="w-2 h-2 rounded-full mt-0.5 shrink-0"
+                  [style.background]="item.color || 'var(--color-primary)'"></span>
+            <div>
+              <p class="font-semibold" style="color:var(--color-text)">{{ item.label }}</p>
+              @if (item.descripcion) {
+                <p class="opacity-50 mt-0.5" style="color:var(--color-text)">{{ item.descripcion }}</p>
+              }
+            </div>
+          </div>
+        }
+      } @else {
+        <p class="text-xs opacity-40 text-center py-4" style="color:var(--color-text)">
+          Sin detalle disponible
+        </p>
+      }
+    </div>
+
+  <!-- ── BARRAS SVG ────────────────────────────────────────────────────────── -->
+  } @else {
+    <div class="flex-1 min-h-0" [class.opacity-0]="animando"
+         style="transition:opacity .2s ease">
+      <svg [attr.viewBox]="viewBox" xmlns="http://www.w3.org/2000/svg"
+           class="w-full h-full" preserveAspectRatio="xMidYMid meet">
+
+        <!-- ── Guías — solo CLASICA ────────────────────────────────────────── -->
+        @if (variante === 'clasica') {
+          @for (g of guias; track g.y) {
+            <line [attr.x1]="PADDING_L" [attr.y1]="g.y"
+                  [attr.x2]="ANCHO_SVG - PADDING_R" [attr.y2]="g.y"
+                  stroke="color-mix(in srgb,var(--color-text) 8%,transparent)"
+                  stroke-width="1" stroke-dasharray="4 4"/>
+            <text [attr.x]="PADDING_L - 4" [attr.y]="g.y + 4"
+                  text-anchor="end" font-size="10"
+                  style="fill:color-mix(in srgb,var(--color-text) 35%,transparent)">
+              {{ g.label }}
+            </text>
+          }
+        }
+
+        <!-- ── Línea de base — COMPACTA y MINIMA ─────────────────────────── -->
+        @if (variante !== 'clasica') {
+          <line [attr.x1]="PADDING_L" [attr.y1]="PADDING_T + altoPadded"
+                [attr.x2]="ANCHO_SVG - PADDING_R" [attr.y2]="PADDING_T + altoPadded"
+                stroke="color-mix(in srgb,var(--color-text) 12%,transparent)"
+                stroke-width="1"/>
+        }
+
+        <!-- ── Barras ──────────────────────────────────────────────────────── -->
+        @for (item of itemsMostrar; track item.label; let i = $index) {
+          <g [class.cursor-pointer]="modoJerarquico"
+             (click)="navegar(item)"
+             (mouseenter)="onBarHover(item)">
+
+            <!-- Fondo tenue -->
+            <rect [attr.x]="barX(i)" [attr.y]="PADDING_T"
+                  [attr.width]="anchoBarra" [attr.height]="altoPadded"
+                  rx="6"
+                  [attr.fill]="item.color || 'var(--color-primary)'"
+                  opacity="0.07"/>
+
+            <!-- Barra principal -->
+            <rect [attr.x]="barX(i)" [attr.y]="barY(item.valor)"
+                  [attr.width]="anchoBarra" [attr.height]="barH(item.valor)"
+                  rx="6"
+                  [attr.fill]="item.color || 'var(--color-primary)'"
+                  style="transition:height .5s cubic-bezier(.4,0,.2,1),y .5s cubic-bezier(.4,0,.2,1)"/>
+
+            <!-- Valor encima — CLASICA y COMPACTA -->
+            @if (variante !== 'minima') {
+              <text [attr.x]="labelX(i)" [attr.y]="barY(item.valor) - 5"
+                    text-anchor="middle"
+                    [attr.font-size]="variante === 'compacta' ? 11 : 10"
+                    [attr.font-weight]="variante === 'compacta' ? 800 : 700"
+                    [attr.fill]="item.color || 'var(--color-primary)'"
+                    opacity="0.9">
+                {{ item.valor | number }}
+              </text>
+            }
+
+            <!-- Label abajo — CLASICA y COMPACTA -->
+            @if (variante !== 'minima') {
+              <text [attr.x]="labelX(i)" [attr.y]="PADDING_T + altoPadded + 14"
+                    text-anchor="middle" font-size="10"
+                    style="fill:color-mix(in srgb,var(--color-text) 65%,transparent)">
+                {{ item.label }}
+              </text>
+            }
+
+            <!-- Porcentaje — solo CLASICA -->
+            @if (variante === 'clasica') {
+              <text [attr.x]="labelX(i)" [attr.y]="PADDING_T + altoPadded + 26"
+                    text-anchor="middle" font-size="9" font-weight="600"
+                    [attr.fill]="item.color || 'var(--color-primary)'"
+                    opacity="0.55">
+                {{ (item.valor / (maxVal || 1) * 100).toFixed(0) }}%
+              </text>
+            }
+
+            <!-- Drill-down hint — solo CLASICA -->
+            @if (variante === 'clasica' && modoJerarquico && item.hijos?.length) {
+              <text [attr.x]="labelX(i)" [attr.y]="PADDING_T + altoPadded + 38"
+                    text-anchor="middle" font-size="9"
+                    style="fill:color-mix(in srgb,var(--color-primary) 60%,transparent)">
+                ▼ ver detalle
+              </text>
+            }
+
+          </g>
+        }
+
+        <!-- ── Labels MINIMA — debajo de la línea de base ─────────────────── -->
+        @if (variante === 'minima') {
+          @for (item of itemsMostrar; track item.label; let i = $index) {
+            <text [attr.x]="labelX(i)" [attr.y]="PADDING_T + altoPadded + 12"
+                  text-anchor="middle" font-size="9"
+                  style="fill:color-mix(in srgb,var(--color-text) 45%,transparent)">
+              {{ item.label.length > 4 ? item.label.slice(0,4) + '…' : item.label }}
+            </text>
+          }
+        }
+
+      </svg>
+    </div>
+  }
+
+  <app-chart-tooltip [state]="tooltip" [containerW]="containerW" />
+</div>

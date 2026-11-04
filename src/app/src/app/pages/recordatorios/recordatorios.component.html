@@ -1,0 +1,513 @@
+<!-- Toasts ──────────────────────────────────────────────────────────────── -->
+<div class="fixed bottom-5 right-5 z-[600] flex flex-col gap-2 pointer-events-none">
+  @for (t of toasts; track t.id) {
+    <div class="flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white pointer-events-auto"
+      [style.background]="t.tipo === 'ok' ? '#22c55e' : '#ef4444'">
+      <i [class]="t.tipo === 'ok' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation'"></i>
+      {{ t.msg }}
+    </div>
+  }
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- HEADER                                                                   -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+      style="background:color-mix(in srgb,var(--color-primary) 12%,transparent)">
+      <i class="fa-solid fa-bell text-lg" style="color:var(--color-primary)"></i>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Recordatorios</h1>
+      <p class="text-xs text-gray-400">Temporales y recurrentes</p>
+    </div>
+  </div>
+  <button (click)="abrirCrear()"
+    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition active:scale-95"
+    style="background:var(--color-primary)">
+    <i class="fa-solid fa-plus"></i>
+    Nuevo recordatorio
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- TABS                                                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="flex gap-1 mb-5 border-b border-gray-200">
+  @for (tab of tabs; track tab.key) {
+    <button (click)="cambiarTab(tab.key)"
+      class="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition"
+      [style.border-bottom-color]="tabActiva === tab.key ? 'var(--color-primary)' : 'transparent'"
+      [style.color]="tabActiva === tab.key ? 'var(--color-primary)' : '#9ca3af'">
+      <i [class]="tab.icon"></i>
+      {{ tab.label }}
+      <span class="text-xs px-1.5 py-0.5 rounded-full font-bold"
+        [style.background]="tabActiva === tab.key ? 'color-mix(in srgb,var(--color-primary) 12%,transparent)' : '#f1f5f9'"
+        [style.color]="tabActiva === tab.key ? 'var(--color-primary)' : '#94a3b8'">
+        {{ tab.key === 'pendientes' ? pendientes.length : tab.key === 'recurrentes' ? recurrentes.length : completados.length }}
+      </span>
+    </button>
+  }
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- LISTA                                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+@if (cargando) {
+  <div class="flex flex-col gap-3">
+    @for (i of [1,2,3]; track i) {
+      <div class="h-20 rounded-xl bg-gray-100 animate-pulse"></div>
+    }
+  </div>
+}
+
+@if (!cargando && listaActiva.length === 0) {
+  <div class="flex flex-col items-center justify-center py-20 text-gray-400">
+    <i class="fa-solid fa-bell-slash text-5xl mb-4 opacity-30"></i>
+    <p class="font-medium">Sin recordatorios aquí</p>
+    <p class="text-sm mt-1">Crea uno nuevo con el botón de arriba</p>
+  </div>
+}
+
+@if (!cargando) {
+  <div class="flex flex-col gap-3 max-w-3xl">
+    @for (r of listaActiva; track r.id) {
+
+      <!-- Tarjeta recordatorio -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition hover:shadow-md">
+
+        <!-- Barra de color lateral + contenido principal -->
+        <div class="flex">
+          <!-- Indicador de estado/tipo -->
+          <div class="w-1 flex-shrink-0 rounded-l-xl"
+            [style.background]="colorEstado(r.estado)"></div>
+
+          <div class="flex-1 p-4">
+            <div class="flex items-start justify-between gap-3">
+
+              <!-- Info -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <!-- Tipo badge -->
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
+                    [style.background]="r.tipo === 'recurrente' ? 'color-mix(in srgb,var(--color-primary) 10%,transparent)' : '#f1f5f9'"
+                    [style.color]="r.tipo === 'recurrente' ? 'var(--color-primary)' : '#64748b'">
+                    @if (r.tipo === 'recurrente') {
+                      <i class="fa-solid fa-repeat text-[9px] mr-0.5"></i>
+                    } @else {
+                      <i class="fa-solid fa-clock text-[9px] mr-0.5"></i>
+                    }
+                    {{ r.tipo === 'recurrente' ? 'Recurrente' : 'Temporal' }}
+                  </span>
+
+                  <!-- Alcance grupal -->
+                  @if (r.alcance === 'grupal') {
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 uppercase tracking-wide">
+                      <i class="fa-solid fa-users text-[9px] mr-0.5"></i>Grupal
+                    </span>
+                  }
+
+                  <!-- Estado -->
+                  @if (r.estado !== 'pendiente') {
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
+                      [style.background]="r.estado === 'completado' ? '#dcfce7' : '#fee2e2'"
+                      [style.color]="r.estado === 'completado' ? '#16a34a' : '#dc2626'">
+                      {{ r.estado === 'completado' ? '✓ Completado' : '✗ Vencido' }}
+                    </span>
+                  }
+                </div>
+
+                <!-- Título -->
+                <p class="font-bold text-gray-800 mt-1.5 leading-snug">{{ r.titulo }}</p>
+
+                <!-- Descripción de la recurrencia -->
+                <p class="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                  <i class="fa-solid fa-calendar-days text-[10px]"></i>
+                  {{ describir(r) }}
+                </p>
+
+                <!-- Próxima ejecución -->
+                @if (r.tipo === 'recurrente' && r.proxima_ejecucion) {
+                  <p class="text-xs mt-1 flex items-center gap-1" style="color:var(--color-primary)">
+                    <i class="fa-solid fa-forward-step text-[10px]"></i>
+                    Próxima: {{ proximoLabel(r) }}
+                  </p>
+                }
+              </div>
+
+              <!-- Acciones -->
+              <div class="flex items-center gap-1 flex-shrink-0">
+                @if (r.estado !== 'completado') {
+                  <button (click)="completar(r)" title="Marcar como completado"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 transition">
+                    <i class="fa-solid fa-circle-check text-sm"></i>
+                  </button>
+                } @else {
+                  <button (click)="reactivar(r)" title="Reactivar"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition">
+                    <i class="fa-solid fa-rotate-left text-sm"></i>
+                  </button>
+                }
+                <button (click)="abrirEditar(r)" title="Editar"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
+                  <i class="fa-solid fa-pen text-sm"></i>
+                </button>
+                <button (click)="confirmarEliminar(r)" title="Eliminar"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
+                  <i class="fa-solid fa-trash text-sm"></i>
+                </button>
+                <button (click)="toggleDetalle(r.id)" title="Ver detalle"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
+                  <i class="fa-solid text-sm"
+                    [class]="detalleAbierto === r.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Detalle expandido -->
+            @if (detalleAbierto === r.id) {
+              <div class="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-4 text-xs text-gray-500">
+
+                @if (r.descripcion) {
+                  <div class="w-full">
+                    <p class="text-gray-700">{{ r.descripcion }}</p>
+                  </div>
+                }
+
+                <div class="flex items-center gap-1.5">
+                  <i class="fa-solid fa-user text-gray-400"></i>
+                  <span>{{ r.creado_por_nombre }}</span>
+                </div>
+
+                @if (r.fecha_inicio) {
+                  <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-play text-gray-400"></i>
+                    <span>Desde {{ r.fecha_inicio }}</span>
+                  </div>
+                }
+
+                @if (r.fecha_fin && !r.sin_fecha_fin) {
+                  <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-stop text-gray-400"></i>
+                    <span>Hasta {{ r.fecha_fin }}</span>
+                  </div>
+                }
+
+                @if (r.total_ejecuciones > 0) {
+                  <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-check-double text-gray-400"></i>
+                    <span>{{ r.total_ejecuciones }} ejecución(es)</span>
+                  </div>
+                }
+
+                @if (r.destinatarios?.length) {
+                  <div class="w-full flex flex-wrap gap-1.5 mt-1">
+                    <span class="text-gray-400 mr-1">Destinatarios:</span>
+                    @for (d of r.destinatarios; track d.codigo) {
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                        style="background:color-mix(in srgb,var(--color-primary) 10%,transparent);color:var(--color-primary)">
+                        {{ d.nombre }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Crear / Editar Recordatorio                                       -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+@if (modalAbierto) {
+  <div class="fixed inset-0 z-[500] flex items-start justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+    (click)="cerrarModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col my-8"
+      (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <h3 class="font-bold text-gray-800 text-base flex items-center gap-2">
+          <i class="fa-solid fa-bell" style="color:var(--color-primary)"></i>
+          {{ editando ? 'Editar recordatorio' : 'Nuevo recordatorio' }}
+        </h3>
+        <button (click)="cerrarModal()" [disabled]="guardando"
+          class="text-gray-400 hover:text-gray-600 transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="px-6 py-5 flex flex-col gap-5 overflow-y-auto" style="max-height:70vh">
+
+        <!-- Título -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Título *</label>
+          <input type="text" [(ngModel)]="form.titulo" placeholder="Ej: Revisar tickets semanales"
+            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none"
+            autofocus>
+        </div>
+
+        <!-- Descripción -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Descripción (opcional)</label>
+          <textarea [(ngModel)]="form.descripcion" rows="2" placeholder="Detalle del recordatorio..."
+            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none resize-none"></textarea>
+        </div>
+
+        <!-- Tipo: Temporal / Recurrente -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-2">Tipo</label>
+          <div class="grid grid-cols-2 gap-2">
+            @for (tipo of [{ key: 'temporal', label: 'Temporal', icon: 'fa-solid fa-clock', desc: 'Una sola vez en una fecha' },
+                           { key: 'recurrente', label: 'Recurrente', icon: 'fa-solid fa-repeat', desc: 'Se repite automáticamente' }]; track tipo.key) {
+              <button type="button" (click)="form.tipo = tipo.key === 'temporal' ? 'temporal' : 'recurrente'"
+                class="flex flex-col gap-1 p-3 rounded-xl border-2 transition text-left"
+                [style.border-color]="form.tipo === tipo.key ? 'var(--color-primary)' : '#e2e8f0'"
+                [style.background]="form.tipo === tipo.key ? 'color-mix(in srgb,var(--color-primary) 6%,transparent)' : '#fafafa'">
+                <i [class]="tipo.icon + ' text-sm'"
+                  [style.color]="form.tipo === tipo.key ? 'var(--color-primary)' : '#94a3b8'"></i>
+                <span class="font-semibold text-xs"
+                  [style.color]="form.tipo === tipo.key ? 'var(--color-primary)' : '#374151'">{{ tipo.label }}</span>
+                <span class="text-[10px] text-gray-400">{{ tipo.desc }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- ── TEMPORAL: fecha única + hora ── -->
+        @if (form.tipo === 'temporal') {
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Fecha *</label>
+              <input type="date" [(ngModel)]="form.fecha_unica"
+                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Hora *</label>
+              <input type="time" [(ngModel)]="form.hora"
+                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none bg-white">
+            </div>
+          </div>
+        }
+
+        <!-- ── RECURRENTE: frecuencia + configuración ── -->
+        @if (form.tipo === 'recurrente') {
+
+          <!-- Frecuencia -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-2">Frecuencia</label>
+            <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              @for (f of frecuencias; track f.key) {
+                <button type="button" (click)="form.frecuencia = f.key"
+                  class="flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition text-center"
+                  [style.border-color]="form.frecuencia === f.key ? 'var(--color-primary)' : '#e2e8f0'"
+                  [style.background]="form.frecuencia === f.key ? 'color-mix(in srgb,var(--color-primary) 8%,transparent)' : '#fafafa'">
+                  <i [class]="f.icon + ' text-sm'"
+                    [style.color]="form.frecuencia === f.key ? 'var(--color-primary)' : '#94a3b8'"></i>
+                  <span class="text-[10px] font-semibold"
+                    [style.color]="form.frecuencia === f.key ? 'var(--color-primary)' : '#6b7280'">{{ f.label }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Días de la semana (semanal) -->
+          @if (form.frecuencia === 'semanal') {
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-2">Días de la semana *</label>
+              <div class="flex gap-1.5 flex-wrap">
+                @for (d of diasSemana; track d.key) {
+                  <button type="button" (click)="toggleDia(d.key)"
+                    class="w-9 h-9 rounded-lg text-xs font-bold border-2 transition"
+                    [style.border-color]="tieneDia(d.key) ? 'var(--color-primary)' : '#e2e8f0'"
+                    [style.background]="tieneDia(d.key) ? 'var(--color-primary)' : '#fafafa'"
+                    [style.color]="tieneDia(d.key) ? '#fff' : '#94a3b8'">
+                    {{ d.short }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Día del mes (mensual) -->
+          @if (form.frecuencia === 'mensual') {
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Día del mes</label>
+              <input type="number" [(ngModel)]="form.dia_mes" min="1" max="31"
+                class="w-24 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none">
+            </div>
+          }
+
+          <!-- Intervalo días (personalizado) -->
+          @if (form.frecuencia === 'personalizado') {
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Cada cuántos días</label>
+              <div class="flex items-center gap-2">
+                <input type="number" [(ngModel)]="form.intervalo_dias" min="1"
+                  class="w-24 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none">
+                <span class="text-sm text-gray-500">día(s)</span>
+              </div>
+            </div>
+          }
+
+          <!-- Hora -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Hora de ejecución</label>
+            <input type="time" [(ngModel)]="form.hora"
+              class="w-40 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none bg-white">
+          </div>
+
+          <!-- Vigencia -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-2">Vigencia</label>
+            <div class="grid grid-cols-2 gap-3 mb-2">
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-1">Fecha inicio</label>
+                <input type="date" [(ngModel)]="form.fecha_inicio"
+                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none bg-white">
+              </div>
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-1">Fecha fin</label>
+                <input type="date" [(ngModel)]="form.fecha_fin"
+                  [disabled]="form.sin_fecha_fin"
+                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none bg-white disabled:opacity-50">
+              </div>
+            </div>
+            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-600">
+              <input type="checkbox" [(ngModel)]="form.sin_fecha_fin" class="rounded">
+              Sin fecha de fin (indefinido)
+            </label>
+          </div>
+        }
+
+        <!-- Alcance: Personal / Grupal -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-2">Alcance</label>
+          <div class="grid grid-cols-2 gap-2">
+            @for (alc of [{ key: 'personal', label: 'Personal', icon: 'fa-solid fa-user', desc: 'Solo para mí' },
+                          { key: 'grupal',   label: 'Grupal',   icon: 'fa-solid fa-users', desc: 'Para un grupo de personas' }]; track alc.key) {
+              <button type="button" (click)="form.alcance = alc.key === 'personal' ? 'personal' : 'grupal'"
+                class="flex flex-col gap-1 p-3 rounded-xl border-2 transition text-left"
+                [style.border-color]="form.alcance === alc.key ? 'var(--color-primary)' : '#e2e8f0'"
+                [style.background]="form.alcance === alc.key ? 'color-mix(in srgb,var(--color-primary) 6%,transparent)' : '#fafafa'">
+                <i [class]="alc.icon + ' text-sm'"
+                  [style.color]="form.alcance === alc.key ? 'var(--color-primary)' : '#94a3b8'"></i>
+                <span class="font-semibold text-xs"
+                  [style.color]="form.alcance === alc.key ? 'var(--color-primary)' : '#374151'">{{ alc.label }}</span>
+                <span class="text-[10px] text-gray-400">{{ alc.desc }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Destinatarios (grupal) -->
+        @if (form.alcance === 'grupal') {
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-2">Destinatarios *</label>
+
+            <!-- Seleccionados -->
+            @if (form.destinatarios.length) {
+              <div class="flex flex-wrap gap-1.5 mb-2">
+                @for (codigo of form.destinatarios; track codigo) {
+                  <div class="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg text-xs group"
+                    style="background:color-mix(in srgb,var(--color-primary) 10%,transparent)">
+                    <div class="w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
+                      style="background:var(--color-primary)">
+                      {{ inicialNombre(getNombreDestinatario(codigo)) }}
+                    </div>
+                    <span class="font-medium" style="color:var(--color-primary)">{{ getNombreDestinatario(codigo) }}</span>
+                    <button type="button" (click)="quitarDestinatario(codigo)"
+                      class="w-3.5 h-3.5 rounded flex items-center justify-center text-gray-400 hover:text-red-500 transition ml-0.5">
+                      <i class="fa-solid fa-xmark text-[8px]"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Buscador -->
+            <div class="relative">
+              <input type="text" [value]="destinatariosBusqueda"
+                (input)="onBuscarDestinatarios($any($event.target).value)"
+                placeholder="Buscar colaborador..."
+                class="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none bg-white">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
+              @if (buscandoDestinatarios) {
+                <i class="fa-solid fa-spinner fa-spin absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
+              }
+            </div>
+
+            <!-- Resultados -->
+            @if (destinatariosSugeridos.length) {
+              <div class="mt-1 border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white max-h-36 overflow-y-auto">
+                @for (sug of destinatariosSugeridos; track sug.codigo) {
+                  <button type="button" (click)="agregarDestinatario(sug)"
+                    [disabled]="yaEsDestinatario(sug.codigo)"
+                    class="w-full px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 text-left transition flex items-center gap-2 disabled:opacity-40">
+                    <div class="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                      style="background:var(--color-primary)">{{ inicialNombre(sug.nombre) }}</div>
+                    <span>{{ sug.nombre }}</span>
+                    @if (yaEsDestinatario(sug.codigo)) {
+                      <i class="fa-solid fa-check ml-auto" style="color:var(--color-primary)"></i>
+                    }
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+
+      </div><!-- /body -->
+
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
+        <button (click)="cerrarModal()" [disabled]="guardando"
+          class="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition font-medium disabled:opacity-50">
+          Cancelar
+        </button>
+        <button (click)="guardar()" [disabled]="guardando || !form.titulo.trim()"
+          class="px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-all active:scale-95 disabled:opacity-60 flex items-center gap-2"
+          style="background:var(--color-primary)">
+          @if (guardando) { <i class="fa-solid fa-spinner fa-spin"></i> }
+          {{ editando ? 'Guardar cambios' : 'Crear recordatorio' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Confirmar eliminación                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+@if (modalEliminar) {
+  <div class="fixed inset-0 z-[600] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    (click)="cerrarModalEliminar()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"
+      (click)="$event.stopPropagation()">
+      <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+        <i class="fa-solid fa-trash text-red-500 text-xl"></i>
+      </div>
+      <h3 class="font-bold text-gray-800 text-lg mb-1">Eliminar recordatorio</h3>
+      <p class="text-sm text-gray-500 mb-5">
+        ¿Eliminar <strong>"{{ recordatorioAEliminar?.titulo }}"</strong>? Esta acción no se puede deshacer.
+      </p>
+      <div class="flex gap-2 justify-center">
+        <button (click)="cerrarModalEliminar()" [disabled]="eliminando"
+          class="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition font-medium disabled:opacity-50">
+          Cancelar
+        </button>
+        <button (click)="eliminar()" [disabled]="eliminando"
+          class="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition active:scale-95 disabled:opacity-60 flex items-center gap-2">
+          @if (eliminando) { <i class="fa-solid fa-spinner fa-spin"></i> }
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+}

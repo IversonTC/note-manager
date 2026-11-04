@@ -1,0 +1,14 @@
+export * from '../../interfaces/dashboard';
+export { FiltroDashboardComponent as FiltroDashboard } from './filtro-fecha/filtro-fecha.component';
+export { KpiCardComponent as KpiCard } from './kpi-card/kpi-card.component';
+export { BarraChartComponent as BarraChart } from './barra-chart/barra-chart.component';
+export { BarrasVerticalesComponent as BarrasVerticales } from './barras-verticales/barras-verticales.component';
+export { LineaChartComponent as LineaChart } from './linea-chart/linea-chart.component';
+export { DonaChartComponent as DonaChart } from './dona-chart/dona-chart.component';
+export { TortaChartComponent as TortaChart } from './torta-chart/torta-chart.component';
+export { MapaCalorComponent as MapaCalor } from './mapa-calor/mapa-calor.component';
+export { PersonasChartComponent as PersonasChart } from './personas-chart/personas-chart.component';
+export { GaugeChartComponent as GaugeChart } from './gauge-chart/gauge-chart.component';
+export { ArcProgressComponent as ArcProgress } from './arc-progress/arc-progress.component';
+export { DashboardGridComponent as DashboardGrid } from './dashboard-grid.component';
+export { DashboardItemComponent as DashboardItem } from './dashboard-item.component';
